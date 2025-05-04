@@ -21,8 +21,7 @@ const light = new THREE.PointLight(0xffffff, 1);
 light.position.set(2, 2, 2);
 scene.add(light);
 
-let playlist = [], current = 0, initialized = false;
-let loading = false;
+let playlist = [], current = 0, initialized = false, loading = false;
 let audioCtx, source, analyser;
 let yandhiVideo = null;
 
@@ -65,17 +64,12 @@ document.getElementById('fileInput').addEventListener('change', async (event) =>
 
   playlist.sort((a, b) => a.trackNum - b.trackNum || a.name.localeCompare(b.name));
   current = 0;
-  if (playlist.length > 0) setTimeout(() => loadTrack(current), 0);
+  if (playlist.length > 0) loadTrack(current); // ✅ Safe call now
 });
 
 function loadTrack(index) {
   if (loading) return;
   loading = true;
-
-  if (!playlist || !playlist.length || index < 0 || index >= playlist.length) {
-    loading = false;
-    return;
-  }
 
   const entry = playlist[index];
   if (!entry) {
@@ -83,13 +77,12 @@ function loadTrack(index) {
     return;
   }
 
-  console.log('Loading track:', index);
   const { file, artist, title, album, picture } = entry;
   trackInfo.textContent = `${artist || 'Unknown Artist'} - ${title || file.name}`;
+
   const url = URL.createObjectURL(file);
   audio.src = url;
   audio.load();
-  audio.onloadeddata = null;
   audio.onloadeddata = () => {
     loading = false;
   };
@@ -108,7 +101,6 @@ function loadTrack(index) {
       const videoTexture = new THREE.VideoTexture(yandhiVideo);
       videoTexture.minFilter = THREE.LinearFilter;
       videoTexture.magFilter = THREE.LinearFilter;
-      videoTexture.format = THREE.RGBFormat;
       material.map = videoTexture;
       material.needsUpdate = true;
     } else {

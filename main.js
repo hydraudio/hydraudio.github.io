@@ -1,76 +1,70 @@
 let playlist = [], currentTrack = 0;
-let audio = document.getElementById('audio');
+let audioPlayer = null;
 let trackInfo = document.getElementById('track-info');
-let albumArt = document.getElementById('albumArt'); // Assuming there's an image element for the album art
+let albumArt = document.getElementById('albumArt'); // Album art image
 let volumeControl = document.getElementById('volumeControl'); // Volume slider
 let loading = false;
-let audioPlayer = null;
 
 // Handle file input and create a playlist
 document.getElementById('fileInput').addEventListener('change', (event) => {
   const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
   playlist = [];
 
+  // Read ID3 tags and create a playlist array
   files.forEach((file) => {
-    playlist.push({
-      file,
-      name: file.name
+    window.jsmediatags.read(file, {
+      onSuccess: (tag) => {
+        const trackNum = parseInt((tag.tags.track || '').toString().split('/')[0]) || 0; // Track number from ID3
+        playlist.push({
+          file,
+          trackNum,
+          name: file.name,
+          artist: tag.tags.artist || 'Unknown Artist',
+          title: tag.tags.title || 'Unknown Title',
+          album: tag.tags.album || 'Unknown Album',
+          picture: tag.tags.picture || null
+        });
+      },
+      onError: (error) => {
+        console.error('Error reading ID3 tags', error);
+        playlist.push({ file, trackNum: 0, name: file.name }); // No metadata, fallback to filename
+      }
     });
   });
 
-  // Sort by ID3 track number first, then by filename if track number is not available
-  playlist.sort((a, b) => {
-    const aTrack = a.file.track || 0;
-    const bTrack = b.file.track || 0;
-    if (aTrack === bTrack) {
-      return a.name.localeCompare(b.name);
-    }
-    return aTrack - bTrack;
-  });
-
+  // Sort playlist first by track number, then by filename
+  playlist.sort((a, b) => a.trackNum - b.trackNum || a.name.localeCompare(b.name));
   currentTrack = 0;
 
-  if (playlist.length > 0) loadTrack(currentTrack); // Load the first track automatically
+  if (playlist.length > 0) loadTrack(currentTrack); // Automatically load the first track
 });
 
-// Load the track and update the track info
+// Function to load and play a track
 function loadTrack(index) {
   if (loading || !playlist[index]) return;
   loading = true;
 
-  const { file, name } = playlist[index];
+  const { file, artist, title, album, picture } = playlist[index];
+  
+  // Set track info
+  trackInfo.textContent = `${artist} - ${title}`;
 
-  // ID3 tag reading (using jsmediatags library)
-  window.jsmediatags.read(file, {
-    onSuccess: (tag) => {
-      const artist = tag.tags.artist || 'Unknown Artist';
-      const title = tag.tags.title || 'Unknown Title';
-      const album = tag.tags.album || 'Unknown Album';
-      const picture = tag.tags.picture || null;
+  // Display album art if available
+  if (picture) {
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(picture.data)));
+    const imgURL = `data:${picture.format};base64,${base64}`;
+    albumArt.src = imgURL;
+    albumArt.style.display = 'block'; // Show album art
+  } else {
+    albumArt.style.display = 'none'; // Hide if no album art
+  }
 
-      trackInfo.textContent = `${artist} - ${title}`;
-
-      // Display album art (if available from ID3)
-      if (picture) {
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(picture.data)));
-        const imgURL = `data:${picture.format};base64,${base64}`;
-        albumArt.src = imgURL;
-        albumArt.style.display = 'block'; // Show album art
-      } else {
-        albumArt.style.display = 'none'; // Hide if no album art
-      }
-    },
-    onError: (error) => {
-      console.error('ID3 Error:', error);
-      trackInfo.textContent = 'Error reading track info';
-    }
-  });
-
+  // Create URL for the file and load it
   const url = URL.createObjectURL(file);
   audio.src = url;
   audio.load();
 
-  // Create a new Howl instance for the audio file
+  // Create a new Howl instance for the audio file (Howler.js)
   audioPlayer = new Howl({
     src: [url],
     html5: true,  // Enable HTML5 audio for larger files
@@ -88,9 +82,8 @@ function loadTrack(index) {
   loading = false;
 }
 
-// Play/Pause button
+// Play/Pause button functionality
 document.getElementById('play').addEventListener('click', () => {
-  // Ensure no interruption of playback
   if (audioPlayer) {
     if (audioPlayer.playing()) {
       audioPlayer.pause();
@@ -139,7 +132,15 @@ volumeControl.addEventListener('input', () => {
   }
 });
 
-// Handle album art spinning
+// When the track ends, automatically go to the next one
+audio.addEventListener('ended', () => {
+  if (playlist.length > 0) {
+    currentTrack = (currentTrack + 1) % playlist.length;
+    loadTrack(currentTrack);
+  }
+});
+
+// Handle album art spinning (using CSS transform)
 function animateAlbumArt() {
   if (albumArt && audioPlayer && audioPlayer.playing()) {
     albumArt.style.transform = `rotate(${(audioPlayer.seek() * 10) % 360}deg)`; // Rotates based on the track's progress
@@ -149,11 +150,3 @@ function animateAlbumArt() {
 
 // Start the spinning animation
 animateAlbumArt();
-
-// When the track ends, automatically go to the next one
-audio.addEventListener('ended', () => {
-  if (playlist.length > 0) {
-    currentTrack = (currentTrack + 1) % playlist.length;
-    loadTrack(currentTrack);
-  }
-});

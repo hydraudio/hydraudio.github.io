@@ -1,25 +1,3 @@
-import * as THREE from 'https://esm.sh/three@0.152.2';
-
-const canvas = document.getElementById('discCanvas');
-const audio = document.getElementById('audio');
-const trackInfo = document.getElementById('track-info');
-const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
-renderer.setSize(300, 300);
-
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1000);
-camera.position.z = 2;
-
-const geometry = new THREE.CircleGeometry(1, 64);
-const material = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-const disc = new THREE.Mesh(geometry, material);
-disc.rotation.x = Math.PI;
-scene.add(disc);
-
-const light = new THREE.PointLight(0xffffff, 1);
-light.position.set(2, 2, 2);
-scene.add(light);
-
 let playlist = [], current = 0, initialized = false, loading = false;
 let audioCtx, source, analyser;
 let yandhiVideo = null;
@@ -27,7 +5,7 @@ let yandhiVideo = null;
 function animate() {
   requestAnimationFrame(animate);
   if (!audio.paused && audio.src) {
-    disc.rotation.z += 0.01;
+    disc.rotation.z += 0.01; // Disc rotates when audio is playing
   }
   renderer.render(scene, camera);
 }
@@ -37,7 +15,7 @@ animate();
 document.getElementById('fileInput').addEventListener('change', async (event) => {
   const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
   playlist = [];
-
+  
   for (let file of files) {
     await new Promise(resolve => {
       window.jsmediatags.read(file, {
@@ -64,21 +42,21 @@ document.getElementById('fileInput').addEventListener('change', async (event) =>
 
   playlist.sort((a, b) => a.trackNum - b.trackNum || a.name.localeCompare(b.name));
   current = 0;
-  if (playlist.length > 0) setTimeout(() => loadTrack(current), 0);
+  
+  if (playlist.length > 0) {
+    setTimeout(() => loadTrack(current), 100); // Ensure loadTrack is triggered after the playlist is populated
+  }
 });
 
-// Safe loadTrack call
+// Safe loadTrack call with changes to prevent recursion errors
 function loadTrack(index) {
-  if (loading) return;
+  if (loading || !playlist[index]) return;  // Safe exit if already loading or index is invalid
+
   loading = true;
 
   const entry = playlist[index];
-  if (!entry) {
-    loading = false;
-    return;
-  }
-
   const { file, artist, title, album, picture } = entry;
+
   trackInfo.textContent = `${artist || 'Unknown Artist'} - ${title || file.name}`;
   
   const url = URL.createObjectURL(file);
@@ -135,7 +113,6 @@ function loadTrack(index) {
   }
 }
 
-// Audio context and analyser
 function resumeAudio() {
   if (!initialized) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -157,7 +134,7 @@ document.getElementById('play').addEventListener('click', () => {
     audio.play();
   } else {
     audio.pause();
-    disc.rotation.z = 0;
+    disc.rotation.z = 0; // Reset rotation if paused
   }
 });
 

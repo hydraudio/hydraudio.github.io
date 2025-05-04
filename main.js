@@ -1,7 +1,9 @@
+// Initialize necessary variables
 let playlist = [];
 let currentTrack = 0;
 let audioPlayer = null;
 let loading = false;
+let volumeControl = document.getElementById('volumeControl');
 
 // File input event listener
 document.getElementById('fileInput').addEventListener('change', (event) => {
@@ -9,6 +11,7 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
     playlist = [];
 
     files.forEach((file) => {
+        // Read ID3 tags for audio files
         window.jsmediatags.read(file, {
             onSuccess: (tag) => {
                 const trackNum = parseInt((tag.tags.track || '').toString().split('/')[0]) || 0;
@@ -118,8 +121,8 @@ document.getElementById('forward').addEventListener('click', () => {
 });
 
 // Volume control functionality
-document.getElementById('volumeControl').addEventListener('input', () => {
+volumeControl.addEventListener('input', () => {
     if (audioPlayer) {
-        audioPlayer.volume(document.getElementById('volumeControl').value / 100);
+        audioPlayer.volume(volumeControl.value / 100);
     }
 });

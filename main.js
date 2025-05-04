@@ -9,14 +9,11 @@ let audioCtx, analyser, source;
 const canvas = document.getElementById('discCanvas');
 const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
 renderer.setSize(300, 300);
-
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1000);
 camera.position.z = 2;
-
 const disc = new THREE.Mesh(new THREE.CircleGeometry(1, 64), new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide }));
 scene.add(disc);
-
 const light = new THREE.PointLight(0xffffff, 1);
 light.position.set(2, 2, 2);
 scene.add(light);
@@ -33,7 +30,7 @@ function initializeAudioContext() {
   audioCtx.resume();
 }
 
-// Animate Disc rotation
+// Disc rotation animation (when playing audio)
 function animateDisc() {
   requestAnimationFrame(animateDisc);
   if (!audio.paused && audio.src) {
@@ -75,7 +72,7 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
   }
 });
 
-// Load Track Function
+// Function to load the track
 function loadTrack(index) {
   if (!playlist[index]) return;
 
@@ -156,7 +153,7 @@ document.getElementById('play').addEventListener('click', () => {
     audio.play();
   } else {
     audio.pause();
-    disc.rotation.z = 0; // Stop spinning when paused
+    disc.rotation.z = 0; // Stop spinning
   }
 });
 

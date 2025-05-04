@@ -126,6 +126,7 @@
   <audio id="audio" controls></audio>
 
   <script>
+    const audio = document.getElementById("audio");
     const canvas = document.getElementById('discCanvas');
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
     renderer.setSize(300, 300);
@@ -151,26 +152,32 @@
     }
     animate();
 
-    const audio = document.getElementById("audio");
     const fileInput = document.getElementById("fileInput");
     const titleEl = document.getElementById("track-title");
     const playlistEl = document.getElementById("playlist");
     const visualizer = document.getElementById("visualizer");
     const vCtx = visualizer.getContext("2d");
+
     let playlist = [], current = 0;
+    let audioCtx, source, analyser, bufferLength, dataArray;
+    let initialized = false;
 
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const source = audioCtx.createMediaElementSource(audio);
-    const analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 64;
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    source.connect(analyser);
-    analyser.connect(audioCtx.destination);
+    function initAudioContext() {
+      if (initialized) return;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      source = audioCtx.createMediaElementSource(audio);
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      bufferLength = analyser.frequencyBinCount;
+      dataArray = new Uint8Array(bufferLength);
+      source.connect(analyser);
+      analyser.connect(audioCtx.destination);
+      initialized = true;
+    }
 
     function drawViz() {
       requestAnimationFrame(drawViz);
+      if (!initialized) return;
       analyser.getByteFrequencyData(dataArray);
       vCtx.clearRect(0, 0, visualizer.width, visualizer.height);
       const barWidth = visualizer.width / bufferLength;
@@ -200,7 +207,6 @@
       const file = playlist[i];
       if (!file) return;
       audio.src = URL.createObjectURL(file);
-      audio.play();
       titleEl.textContent = file.name;
       updateTexture(file);
       renderPlaylist();
@@ -210,16 +216,20 @@
       if (!playlist.length) return;
       current = (current + 1) % playlist.length;
       load(current);
+      audio.play();
     }
 
     function prevTrack() {
       if (!playlist.length) return;
       current = (current - 1 + playlist.length) % playlist.length;
       load(current);
+      audio.play();
     }
 
     function togglePlay() {
       if (audio.src === '') return;
+      initAudioContext();
+      audioCtx.resume();
       if (audio.paused) audio.play();
       else audio.pause();
     }
@@ -249,6 +259,7 @@
         div.onclick = () => {
           current = i;
           load(i);
+          audio.play();
         };
         playlistEl.appendChild(div);
       });

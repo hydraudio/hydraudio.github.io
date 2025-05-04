@@ -21,14 +21,14 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
   if (playlist.length > 0) loadTrack(currentTrack);
 });
 
-// Load track and display track information
+// Load track and handle track info
 function loadTrack(index) {
   if (loading || !playlist[index]) return;
   loading = true;
 
   const { file, artist, title } = playlist[index];
   trackInfo.textContent = `${artist} - ${title}`;
-  
+
   const url = URL.createObjectURL(file);
   audio.src = url;
   audio.load();
@@ -76,7 +76,7 @@ audio.addEventListener('ended', () => {
   }
 });
 
-// Initialize audio context for frequency visualization (simplified)
+// Simple frequency visualizer for the audio
 const visualCanvas = document.createElement('canvas');
 visualCanvas.width = 600;
 visualCanvas.height = 60;

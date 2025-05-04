@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <title>Hydraudio</title>
   <style>
@@ -84,41 +83,43 @@
     <canvas id="discCanvas"></canvas>
       <audio id="audio" controls style="margin-top: 2rem; display: none;"></audio>
       <div id="controls" style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-      $1⏮️ Previous$2
-      $1⏪ Rewind$2
-      $1▶️ Play$2
-      $1Forward ⏩$2
-      $1Next ⏭️$2
-    </div>
+  <button id="prev">⏮ Previous</button>
+  <button id="rewind">⏪ Rewind</button>
+  <button id="play">▶ Play</button>
+  <button id="forward">Forward ⏩</button>
+  <button id="next">Next ⏭</button>
+</div>
 
     <style>
-      #controls button {
-        background: #000;
-        color: #fff;
-        font-family: 'HydraFont', sans-serif;
-        border: none;
-        padding: 0.75rem 1.2rem;
-        font-size: 1.1rem;
-        border-radius: 50px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
+    #controls button {
+      background: #fff;
+      color: #000;
+      font-family: 'HydraFont', sans-serif;
+      border: 2px solid #000;
+      padding: 0.75rem 1.2rem;
+      font-size: 1.1rem;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
 
-      #controls button:hover {
-        background: #444;
-      }
+    #controls button:hover {
+      background: #000;
+      color: #fff;
+    }
 
-      #play {
-        background: #ff0090;
-        color: white;
-        font-weight: bold;
-        font-size: 1.2rem;
-        box-shadow: 0 0 10px #ff0090aa;
-      }
+    #play {
+      background: #ff0090;
+      color: white;
+      font-weight: bold;
+      font-size: 1.2rem;
+      box-shadow: 0 0 10px #ff0090aa;
+      border: none;
+    }
 
-      #play:hover {
-        background: #c60070;
-      }
+    #play:hover {
+      background: #c60070;
+    }
     </style>
 
   </div>
@@ -221,6 +222,28 @@
     loadTrack(current);
   });
   });
+// 🎧 Visualiser
+  const visualCanvas = document.createElement('canvas');
+  visualCanvas.width = 600;
+  visualCanvas.height = 60;
+  visualCanvas.style.marginTop = '2rem';
+  document.getElementById('container').appendChild(visualCanvas);
+  const vCtx = visualCanvas.getContext('2d');
+
+  function drawViz() {
+    requestAnimationFrame(drawViz);
+    if (!initialized) return;
+    const dataArray = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(dataArray);
+    vCtx.clearRect(0, 0, visualCanvas.width, visualCanvas.height);
+    const barWidth = visualCanvas.width / dataArray.length;
+    for (let i = 0; i < dataArray.length; i++) {
+      const barHeight = dataArray[i] / 2;
+      vCtx.fillStyle = `rgb(${barHeight + 100}, 0, ${255 - barHeight})`;
+      vCtx.fillRect(i * barWidth, visualCanvas.height - barHeight, barWidth - 1, barHeight);
+    }
+  }
+  drawViz();
 </script>
 </body>
 </html>

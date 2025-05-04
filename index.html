@@ -77,6 +77,37 @@
     button:hover {
       background: var(--accent);
     }
+
+    #playlist {
+      margin-top: 2rem;
+      width: 100%;
+      max-width: 400px;
+      font-size: 0.9rem;
+      text-align: left;
+      color: #444;
+    }
+
+    #playlist div {
+      padding: 6px 12px;
+      border-bottom: 1px solid #ddd;
+      cursor: pointer;
+    }
+
+    #playlist div.active {
+      background: #ffe0f5;
+      color: #d10077;
+      font-weight: bold;
+    }
+
+    #visualizer {
+      width: 100%;
+      max-width: 600px;
+      height: 60px;
+      margin-top: 3rem;
+      background: #eee;
+      border-radius: 8px;
+      overflow: hidden;
+    }
   </style>
 </head>
 <body>
@@ -90,6 +121,8 @@
     <button onclick="togglePlay()">▶️/⏸ Play</button>
     <button onclick="nextTrack()">⏭ Next</button>
   </div>
+  <div id="playlist"></div>
+  <canvas id="visualizer"></canvas>
   <audio id="audio" controls></audio>
 
   <script>
@@ -121,7 +154,33 @@
     const audio = document.getElementById("audio");
     const fileInput = document.getElementById("fileInput");
     const titleEl = document.getElementById("track-title");
+    const playlistEl = document.getElementById("playlist");
+    const visualizer = document.getElementById("visualizer");
+    const vCtx = visualizer.getContext("2d");
     let playlist = [], current = 0;
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioCtx.createMediaElementSource(audio);
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 64;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    source.connect(analyser);
+    analyser.connect(audioCtx.destination);
+
+    function drawViz() {
+      requestAnimationFrame(drawViz);
+      analyser.getByteFrequencyData(dataArray);
+      vCtx.clearRect(0, 0, visualizer.width, visualizer.height);
+      const barWidth = visualizer.width / bufferLength;
+      for (let i = 0; i < bufferLength; i++) {
+        const barHeight = dataArray[i] / 2;
+        vCtx.fillStyle = `rgb(${barHeight + 100}, 0, ${255 - barHeight})`;
+        vCtx.fillRect(i * barWidth, visualizer.height - barHeight, barWidth - 2, barHeight);
+      }
+    }
+    drawViz();
 
     fileInput.addEventListener('change', () => {
       playlist = Array.from(fileInput.files)
@@ -130,8 +189,10 @@
       if (playlist.length > 0) {
         current = 0;
         load(current);
+        renderPlaylist();
       } else {
         titleEl.textContent = 'No valid audio files found.';
+        playlistEl.innerHTML = '';
       }
     });
 
@@ -142,6 +203,7 @@
       audio.play();
       titleEl.textContent = file.name;
       updateTexture(file);
+      renderPlaylist();
     }
 
     function nextTrack() {
@@ -175,6 +237,20 @@
             });
           }
         }
+      });
+    }
+
+    function renderPlaylist() {
+      playlistEl.innerHTML = '';
+      playlist.forEach((file, i) => {
+        const div = document.createElement('div');
+        div.textContent = file.name;
+        if (i === current) div.classList.add('active');
+        div.onclick = () => {
+          current = i;
+          load(i);
+        };
+        playlistEl.appendChild(div);
       });
     }
 

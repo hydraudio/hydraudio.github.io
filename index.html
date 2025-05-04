@@ -125,6 +125,12 @@
   <script type="module">
     import * as THREE from 'https://esm.sh/three@0.152.2';
 
+    // ✅ FIXED: define globals first
+    let audioCtx, source, analyser;
+    let initialized = false;
+    let playlist = [];
+    let current = 0;
+
     const canvas = document.getElementById('discCanvas');
     const audio = document.getElementById('audio');
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
@@ -137,15 +143,12 @@
     const geometry = new THREE.CircleGeometry(1, 64);
     const material = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.8, roughness: 0.2 });
     const disc = new THREE.Mesh(geometry, material);
-    disc.rotation.x = -Math.PI / 2; // lay flat
+    disc.rotation.x = -Math.PI / 2; // Lay flat
     scene.add(disc);
 
     const light = new THREE.PointLight(0xffffff, 1);
     light.position.set(2, 2, 2);
     scene.add(light);
-
-    let audioCtx, source, analyser, initialized = false;
-    let playlist = [], current = 0;
 
     function animate() {
       requestAnimationFrame(animate);
@@ -154,6 +157,7 @@
       }
       renderer.render(scene, camera);
     }
+
     animate();
 
     const fileInput = document.getElementById('fileInput');
@@ -179,7 +183,6 @@
       resumeContext();
       audio.style.display = 'block';
 
-      // Album art
       window.jsmediatags.read(file, {
         onSuccess: function(tag) {
           const pic = tag.tags.picture;
@@ -267,6 +270,7 @@
         vCtx.fillRect(i * barWidth, visualCanvas.height - barHeight, barWidth - 1, barHeight);
       }
     }
+
     drawViz();
   </script>
 </body>

@@ -65,9 +65,13 @@ document.getElementById('fileInput').addEventListener('change', async (event) =>
  playlist.sort((a, b) => a.trackNum - b.trackNum || a.name.localeCompare(b.name));
 current = 0;
 
-if (!loading && playlist.length > 0) {
-  loadTrack(current);
-}
+setTimeout(() => {
+  if (!loading && playlist.length > 0) {
+    console.log("✅ Safe loading track:", current);
+    loadTrack(current);
+  }
+}, 10);
+
 
 });
 
@@ -76,6 +80,7 @@ function loadTrack(index) {
   loading = true;
 
   const entry = playlist[index];
+  audio.onloadeddata = null;
   if (!entry) {
     loading = false;
     return;

@@ -11,33 +11,33 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
   files.forEach((file) => {
     playlist.push({
       file,
-      artist: file.name.split('-')[0] || 'Unknown Artist', // Artist from the file name
-      title: file.name.split('-')[1] || 'Untitled', // Title from the file name
+      name: file.name
     });
   });
 
-  playlist.sort((a, b) => a.title.localeCompare(b.title));
+  playlist.sort((a, b) => a.name.localeCompare(b.name)); // Sort tracks by name
   currentTrack = 0;
-  if (playlist.length > 0) loadTrack(currentTrack);
+
+  if (playlist.length > 0) loadTrack(currentTrack); // Load the first track automatically
 });
 
-// Load track and handle track info
+// Load the track, display track info, and play it
 function loadTrack(index) {
   if (loading || !playlist[index]) return;
   loading = true;
 
-  const { file, artist, title } = playlist[index];
-  trackInfo.textContent = `${artist} - ${title}`;
+  const { file, name } = playlist[index];
+  trackInfo.textContent = `Playing: ${name}`;
 
   const url = URL.createObjectURL(file);
   audio.src = url;
   audio.load();
-  audio.play().catch(err => console.error('Error playing audio', err));
+  audio.play().catch(err => console.error('Error playing audio:', err));
 
   loading = false;
 }
 
-// Audio control buttons
+// Play/Pause button functionality
 document.getElementById('play').addEventListener('click', () => {
   if (audio.paused) {
     audio.play();
@@ -46,68 +46,36 @@ document.getElementById('play').addEventListener('click', () => {
   }
 });
 
+// Next button functionality
 document.getElementById('next').addEventListener('click', () => {
   if (playlist.length > 0) {
-    currentTrack = (currentTrack + 1) % playlist.length;
+    currentTrack = (currentTrack + 1) % playlist.length; // Loop back to start
     loadTrack(currentTrack);
   }
 });
 
+// Previous button functionality
 document.getElementById('prev').addEventListener('click', () => {
   if (playlist.length > 0) {
-    currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
+    currentTrack = (currentTrack - 1 + playlist.length) % playlist.length; // Loop backwards
     loadTrack(currentTrack);
   }
 });
 
+// Rewind 10 seconds
 document.getElementById('rewind').addEventListener('click', () => {
   audio.currentTime = Math.max(audio.currentTime - 10, 0);
 });
 
+// Forward 10 seconds
 document.getElementById('forward').addEventListener('click', () => {
   audio.currentTime = Math.min(audio.currentTime + 10, audio.duration);
 });
 
-// When track ends, load the next track
+// When track ends, automatically go to the next one
 audio.addEventListener('ended', () => {
   if (playlist.length > 0) {
     currentTrack = (currentTrack + 1) % playlist.length;
     loadTrack(currentTrack);
   }
 });
-
-// Simple frequency visualizer for the audio
-const visualCanvas = document.createElement('canvas');
-visualCanvas.width = 600;
-visualCanvas.height = 60;
-visualCanvas.style.marginTop = '2rem';
-document.getElementById('container').appendChild(visualCanvas);
-const vCtx = visualCanvas.getContext('2d');
-let analyser;
-
-function initializeAudioContext() {
-  if (!analyser) {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    analyser = audioCtx.createAnalyser();
-    const source = audioCtx.createMediaElementSource(audio);
-    source.connect(analyser);
-    analyser.connect(audioCtx.destination);
-  }
-}
-
-function drawVisualizer() {
-  requestAnimationFrame(drawVisualizer);
-  if (!analyser) return;
-  const dataArray = new Uint8Array(analyser.frequencyBinCount);
-  analyser.getByteFrequencyData(dataArray);
-  vCtx.clearRect(0, 0, visualCanvas.width, visualCanvas.height);
-  const barWidth = visualCanvas.width / dataArray.length;
-  for (let i = 0; i < dataArray.length; i++) {
-    const barHeight = dataArray[i] / 2;
-    vCtx.fillStyle = `rgb(${barHeight + 100}, 0, ${255 - barHeight})`;
-    vCtx.fillRect(i * barWidth, visualCanvas.height - barHeight, barWidth - 1, barHeight);
-  }
-}
-
-drawVisualizer();
-initializeAudioContext();

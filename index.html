@@ -3,17 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <title>Hydraudio</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
+    * { box-sizing: border-box; }
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(145deg, #1a1a1d, #0f0f10);
-      color: #ffffff;
       margin: 0;
       padding: 2rem;
+      background: radial-gradient(circle, #111 0%, #000 100%);
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -23,16 +21,15 @@
 
     h1 {
       font-size: 2.5rem;
-      background: linear-gradient(90deg, #00c3ff, #7700ff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
       margin-bottom: 1rem;
+      color: #00f2ff;
+      text-shadow: 0 0 10px #00f2ff80;
     }
 
     input[type="file"] {
-      background: #111;
-      color: #aaa;
-      border: 2px dashed #444;
+      background: #00000033;
+      color: #fff;
+      border: 2px dashed #555;
       border-radius: 10px;
       padding: 1rem;
       cursor: pointer;
@@ -40,26 +37,28 @@
     }
 
     #disc-container {
-      width: 320px;
-      height: 320px;
-      perspective: 1200px;
-      margin: 2rem 0;
+      width: 300px;
+      height: 300px;
+      perspective: 1000px;
     }
 
     #disc {
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      background-image: radial-gradient(circle at center, #444 30%, #111 70%);
-      background-size: cover;
-      animation: spin 6s linear infinite;
       position: relative;
-      box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+      transform-style: preserve-3d;
+      transition: transform 0.8s ease;
+      box-shadow: 0 0 30px rgba(255,255,255,0.05);
+    }
+
+    #disc.playing {
+      animation: spin 6s linear infinite;
     }
 
     #disc::before,
     #disc::after {
-      content: "";
+      content: '';
       position: absolute;
       width: 100%;
       height: 100%;
@@ -78,14 +77,14 @@
     }
 
     @keyframes spin {
-      from { transform: rotateY(0); }
-      to { transform: rotateY(360deg); }
+      0% { transform: rotateY(0); }
+      100% { transform: rotateY(360deg); }
     }
 
     #track-title {
-      font-size: 1.2rem;
-      margin-top: 0.5rem;
-      color: #ffde6b;
+      font-size: 1.1rem;
+      margin-top: 1rem;
+      color: #ffd86b;
     }
 
     #player-controls {
@@ -95,16 +94,16 @@
     }
 
     button {
-      background: #222;
-      border: 2px solid #555;
+      background: #1c1c1c;
+      color: #00f2ff;
+      border: 2px solid #00f2ff40;
       border-radius: 12px;
       padding: 0.6rem 1.2rem;
-      color: #fff;
-      font-size: 1rem;
       font-weight: bold;
+      font-size: 1rem;
       cursor: pointer;
-      transition: all 0.2s ease-in-out;
-      box-shadow: 0 0 10px #00f2ff40;
+      transition: all 0.3s;
+      box-shadow: 0 0 10px #00f2ff20;
     }
 
     button:hover {
@@ -115,29 +114,23 @@
 
     #playlist {
       margin-top: 1rem;
-      max-height: 180px;
-      overflow-y: auto;
-      font-size: 0.9rem;
       width: 100%;
       max-width: 400px;
       text-align: left;
+      font-size: 0.9rem;
+      color: #aaa;
     }
 
     #playlist div {
       padding: 6px 12px;
       border-bottom: 1px solid #333;
       cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    #playlist div:hover {
-      background: #222;
     }
 
     #playlist div.active {
-      background: #00c3ff20;
-      font-weight: bold;
+      background: #00f2ff20;
       color: #00f2ff;
+      font-weight: bold;
     }
 
     audio {
@@ -156,11 +149,12 @@
     <button onclick="nextTrack()">⏭ Next</button>
   </div>
   <div id="playlist"></div>
-  <audio id="audio" controls></audio>
+  <audio id="audio"></audio>
 
   <script>
     const folderInput = document.getElementById('folderInput');
     const audio = document.getElementById('audio');
+    const disc = document.getElementById('disc');
     const titleEl = document.getElementById('track-title');
     const playlistEl = document.getElementById('playlist');
 
@@ -169,11 +163,11 @@
 
     folderInput.addEventListener('change', () => {
       playlist = Array.from(folderInput.files)
-        .filter(file => file.type.startsWith("audio/"))
+        .filter(file => file.type.startsWith(\"audio/\"))
         .sort((a, b) => a.name.localeCompare(b.name));
 
       if (playlist.length === 0) {
-        alert("No audio files found.");
+        alert(\"No audio files found.\");
         return;
       }
 
@@ -185,10 +179,34 @@
     function loadTrack(index) {
       const file = playlist[index];
       if (!file) return;
+
       audio.src = URL.createObjectURL(file);
       audio.play();
       titleEl.textContent = file.name;
       renderPlaylist();
+      updateDiscArt(file);
+
+      disc.classList.add('playing');
+    }
+
+    function updateDiscArt(file) {
+      jsmediatags.read(file, {
+        onSuccess: function(tag) {
+          const pics = tag.tags.picture;
+          if (pics) {
+            const base64String = btoa(String.fromCharCode(...new Uint8Array(pics.data)));
+            const mime = pics.format;
+            const url = `data:${mime};base64,${base64String}`;
+            disc.style.setProperty('--front-cover', `url(${url})`);
+            disc.style.setProperty('--back-cover', `url(${url})`);
+            disc.style.setProperty('--has-cover', 'yes');
+            disc.querySelector('::before').style.backgroundImage = `url(${url})`;
+          }
+        },
+        onError: function(error) {
+          console.log(\"Tag read error:\", error.type, error.info);
+        }
+      });
     }
 
     function nextTrack() {
@@ -206,8 +224,12 @@
     function togglePlay() {
       if (audio.paused) {
         audio.play();
+        disc.classList.add('playing');
+        disc.style.transform = 'rotateY(0deg)';
       } else {
         audio.pause();
+        disc.classList.remove('playing');
+        disc.style.transform = 'rotateY(180deg)';
       }
     }
 

@@ -83,9 +83,9 @@ function loadTrack(index) {
   const url = URL.createObjectURL(file);
   audio.src = url;
   audio.load();
-  audio.onloadeddata = () => {
-    loading = false;
-  };
+  audio.onloadedmetadata = () => {
+  loading = false;
+};
   audio.play().catch(() => {});
   resumeAudio();
 

@@ -1,281 +1,173 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Hydraudio</title>
   <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
   <style>
-    * { box-sizing: border-box; }
+    :root {
+      --primary: #000;
+      --bg: #fdfdfd;
+      --accent: #ff00cc;
+    }
+
     body {
       margin: 0;
-      padding: 2rem;
-      background: radial-gradient(circle, #111 0%, #000 100%);
-      color: #fff;
       font-family: 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--primary);
       display: flex;
       flex-direction: column;
       align-items: center;
+      padding: 2rem;
       text-align: center;
-      min-height: 100vh;
     }
 
     h1 {
       font-size: 2.5rem;
       margin-bottom: 1rem;
-      color: #00f2ff;
-      text-shadow: 0 0 10px #00f2ff80;
+      color: var(--primary);
+    }
+
+    #upload-label {
+      background: var(--accent);
+      color: white;
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 2rem;
+      cursor: pointer;
+      box-shadow: 0 0 15px #ff00cc55;
+      margin-bottom: 1rem;
     }
 
     input[type="file"] {
       display: none;
     }
 
-    .eye-candy-upload {
-      background: radial-gradient(circle at 30% 30%, #00f2ff, #7700ff);
-      color: black;
-      padding: 1rem 2.5rem;
-      border-radius: 40px;
-      font-weight: bold;
-      font-size: 1.1rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 0 20px #00f2ff80;
-      margin-bottom: 2rem;
-      position: relative;
-      display: inline-block;
-      overflow: hidden;
-      border: 3px solid #00f2ff80;
-    }
-
-    .eye-candy-upload:hover {
-      background: radial-gradient(circle at 70% 30%, #00cfff, #a500ff);
-      box-shadow: 0 0 30px #00f2ff;
-      transform: scale(1.05);
-    }
-
-    .eye-candy-upload span {
-      display: inline-block;
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.05); opacity: 0.9; }
-    }
-
-    #disc-container {
+    canvas {
       width: 300px;
       height: 300px;
-      perspective: 1000px;
-    }
-
-    #disc {
-      width: 100%;
-      height: 100%;
       border-radius: 50%;
-      position: relative;
-      transform-style: preserve-3d;
-      transition: transform 0.8s ease;
-      box-shadow: 0 0 30px rgba(255,255,255,0.05);
-      background-size: cover;
-      background-position: center;
-    }
-
-    #disc.playing {
-      animation: spin 6s linear infinite;
-    }
-
-    #disc::before,
-    #disc::after {
-      content: '';
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background-size: cover;
-      backface-visibility: hidden;
-    }
-
-    #disc::before {
-      background-image: url('https://upload.wikimedia.org/wikipedia/en/9/97/TheDarkSideOfTheMoon.png');
-    }
-
-    #disc::after {
-      transform: rotateY(180deg);
-      background-image: url('https://upload.wikimedia.org/wikipedia/commons/6/6f/Backcover-dsotm.png');
-    }
-
-    @keyframes spin {
-      0% { transform: rotateY(0); }
-      100% { transform: rotateY(360deg); }
+      margin: 2rem auto;
     }
 
     #track-title {
       font-size: 1.1rem;
       margin-top: 1rem;
-      color: #ffd86b;
     }
 
-    #player-controls {
+    #controls {
       display: flex;
       gap: 1rem;
       margin-top: 1rem;
     }
 
     button {
-      background: #1c1c1c;
-      color: #00f2ff;
-      border: 2px solid #00f2ff40;
-      border-radius: 12px;
       padding: 0.6rem 1.2rem;
-      font-weight: bold;
       font-size: 1rem;
+      border-radius: 1rem;
+      border: none;
+      background: var(--primary);
+      color: var(--bg);
       cursor: pointer;
-      transition: all 0.3s;
-      box-shadow: 0 0 10px #00f2ff20;
     }
 
     button:hover {
-      background: #00f2ff;
-      color: #000;
-      box-shadow: 0 0 20px #00f2ff;
-    }
-
-    #playlist {
-      margin-top: 1rem;
-      width: 100%;
-      max-width: 400px;
-      text-align: left;
-      font-size: 0.9rem;
-      color: #aaa;
-    }
-
-    #playlist div {
-      padding: 6px 12px;
-      border-bottom: 1px solid #333;
-      cursor: pointer;
-    }
-
-    #playlist div.active {
-      background: #00f2ff20;
-      color: #00f2ff;
-      font-weight: bold;
-    }
-
-    audio {
-      display: none;
+      background: var(--accent);
     }
   </style>
 </head>
 <body>
-  <h1>🎧 Hydraudio</h1>
-  <label for="folderInput" class="eye-candy-upload">
-    <span>📁🎶 Load Album Folder</span>
-  </label>
-  <input type="file" id="folderInput" webkitdirectory multiple />
-  <div id="disc-container"><div id="disc"></div></div>
+  <h1>Hydraudio</h1>
+  <label id="upload-label" for="fileInput">📁 Load Album Folder</label>
+  <input type="file" id="fileInput" webkitdirectory multiple />
+  <canvas id="discCanvas"></canvas>
   <div id="track-title">No track loaded</div>
-  <div id="player-controls">
+  <div id="controls">
     <button onclick="prevTrack()">⏮ Prev</button>
-    <button onclick="togglePlay()">▶️/⏸ Play/Pause</button>
+    <button onclick="togglePlay()">▶️/⏸ Play</button>
     <button onclick="nextTrack()">⏭ Next</button>
   </div>
-  <div id="playlist"></div>
   <audio id="audio"></audio>
 
   <script>
-    const folderInput = document.getElementById('folderInput');
-    const audio = document.getElementById('audio');
-    const disc = document.getElementById('disc');
-    const titleEl = document.getElementById('track-title');
-    const playlistEl = document.getElementById('playlist');
+    const canvas = document.getElementById('discCanvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+    renderer.setSize(300, 300);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1000);
+    camera.position.z = 2;
 
-    let playlist = [];
-    let currentTrack = 0;
+    const geometry = new THREE.CylinderGeometry(1, 1, 0.1, 64);
+    const material = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.8, roughness: 0.2 });
+    const disc = new THREE.Mesh(geometry, material);
+    scene.add(disc);
 
-    folderInput.addEventListener('change', () => {
-      playlist = Array.from(folderInput.files)
-        .filter(file => file.type.startsWith(\"audio/\"))
-        .sort((a, b) => a.name.localeCompare(b.name));
+    const light = new THREE.PointLight(0xffffff, 1);
+    light.position.set(2, 2, 2);
+    scene.add(light);
 
-      if (playlist.length === 0) {
-        alert(\"No audio files found.\");
-        return;
+    function animate() {
+      requestAnimationFrame(animate);
+      if (!audio.paused) {
+        disc.rotation.y += 0.01;
       }
+      renderer.render(scene, camera);
+    }
+    animate();
 
-      currentTrack = 0;
-      loadTrack(currentTrack);
-      renderPlaylist();
+    const audio = document.getElementById("audio");
+    const fileInput = document.getElementById("fileInput");
+    const titleEl = document.getElementById("track-title");
+    let playlist = [], current = 0;
+
+    fileInput.addEventListener('change', () => {
+      playlist = Array.from(fileInput.files)
+        .filter(f => f.type.startsWith('audio/'))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      current = 0;
+      load(current);
     });
 
-    function loadTrack(index) {
-      const file = playlist[index];
+    function load(i) {
+      const file = playlist[i];
       if (!file) return;
-
       audio.src = URL.createObjectURL(file);
-      audio.play();
       titleEl.textContent = file.name;
-      renderPlaylist();
-      updateDiscArt(file);
-
-      disc.classList.add('playing');
-      disc.style.transform = 'rotateY(0deg)';
+      audio.play();
+      updateTexture(file);
     }
 
-    function updateDiscArt(file) {
+    function nextTrack() {
+      current = (current + 1) % playlist.length;
+      load(current);
+    }
+
+    function prevTrack() {
+      current = (current - 1 + playlist.length) % playlist.length;
+      load(current);
+    }
+
+    function togglePlay() {
+      if (audio.paused) audio.play();
+      else audio.pause();
+    }
+
+    function updateTexture(file) {
       jsmediatags.read(file, {
         onSuccess: function(tag) {
           const pic = tag.tags.picture;
           if (pic) {
             const base64 = btoa(String.fromCharCode(...new Uint8Array(pic.data)));
-            const mime = pic.format;
-            const url = `data:${mime};base64,${base64}`;
-            disc.style.backgroundImage = `url(${url})`;
-            disc.querySelector('::before').style.backgroundImage = `url(${url})`;
-            disc.querySelector('::after').style.backgroundImage = `url(${url})`;
+            const src = `data:${pic.format};base64,${base64}`;
+            new THREE.TextureLoader().load(src, (texture) => {
+              material.map = texture;
+              material.needsUpdate = true;
+            });
           }
-        },
-        onError: function(error) {
-          console.log(\"Tag read error:\", error.type, error.info);
         }
-      });
-    }
-
-    function nextTrack() {
-      if (playlist.length === 0) return;
-      currentTrack = (currentTrack + 1) % playlist.length;
-      loadTrack(currentTrack);
-    }
-
-    function prevTrack() {
-      if (playlist.length === 0) return;
-      currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
-      loadTrack(currentTrack);
-    }
-
-    function togglePlay() {
-      if (audio.paused) {
-        audio.play();
-        disc.classList.add('playing');
-        disc.style.transform = 'rotateY(0deg)';
-      } else {
-        audio.pause();
-        disc.classList.remove('playing');
-        disc.style.transform = 'rotateY(180deg)';
-      }
-    }
-
-    function renderPlaylist() {
-      playlistEl.innerHTML = '';
-      playlist.forEach((file, i) => {
-        const div = document.createElement('div');
-        div.textContent = file.name;
-        if (i === currentTrack) div.classList.add('active');
-        div.onclick = () => {
-          currentTrack = i;
-          loadTrack(i);
-        };
-        playlistEl.appendChild(div);
       });
     }
 

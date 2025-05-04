@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <title>Hydraudio</title>
   <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
   <style>
@@ -142,19 +142,21 @@
     light.position.set(2, 2, 2);
     scene.add(light);
 
-    function animate() {
-      requestAnimationFrame(animate);
-      if (!audio.paused) {
-        disc.rotation.y += 0.01;
-      }
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    const fileInput = document.getElementById('fileInput');
     const audio = document.getElementById('audio');
     let audioCtx, source, analyser, initialized = false;
     let playlist = [], current = 0;
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (!audio.paused && audio.src) {
+        disc.rotation.z += 0.01;
+      }
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    const fileInput = document.getElementById('fileInput');
 
     fileInput.addEventListener('change', () => {
       playlist = Array.from(fileInput.files)
@@ -177,7 +179,6 @@
       resumeContext();
       audio.style.display = 'block';
 
-      // Load album art using jsmediatags
       window.jsmediatags.read(file, {
         onSuccess: function(tag) {
           const pic = tag.tags.picture;
@@ -217,6 +218,7 @@
         audio.play();
       } else {
         audio.pause();
+        disc.rotation.z = 0;
       }
     });
 

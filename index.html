@@ -144,7 +144,12 @@
     scene.add(light);
 
     function animate() {
+      if (typeof audio !== 'undefined' && !audio.paused) {
+        disc.rotation.y += 0.01;
+      }
+      renderer.render(scene, camera);
       requestAnimationFrame(animate);
+    }
       if (!audio.paused) {
         disc.rotation.y += 0.01;
       }

@@ -90,7 +90,7 @@
     <button onclick="togglePlay()">▶️/⏸ Play</button>
     <button onclick="nextTrack()">⏭ Next</button>
   </div>
-  <audio id="audio"></audio>
+  <audio id="audio" controls></audio>
 
   <script>
     const canvas = document.getElementById('discCanvas');
@@ -125,32 +125,39 @@
 
     fileInput.addEventListener('change', () => {
       playlist = Array.from(fileInput.files)
-        .filter(f => f.type.startsWith('audio/'))
+        .filter(f => f.type.includes('audio'))
         .sort((a, b) => a.name.localeCompare(b.name));
-      current = 0;
-      load(current);
+      if (playlist.length > 0) {
+        current = 0;
+        load(current);
+      } else {
+        titleEl.textContent = 'No valid audio files found.';
+      }
     });
 
     function load(i) {
       const file = playlist[i];
       if (!file) return;
       audio.src = URL.createObjectURL(file);
-      titleEl.textContent = file.name;
       audio.play();
+      titleEl.textContent = file.name;
       updateTexture(file);
     }
 
     function nextTrack() {
+      if (!playlist.length) return;
       current = (current + 1) % playlist.length;
       load(current);
     }
 
     function prevTrack() {
+      if (!playlist.length) return;
       current = (current - 1 + playlist.length) % playlist.length;
       load(current);
     }
 
     function togglePlay() {
+      if (audio.src === '') return;
       if (audio.paused) audio.play();
       else audio.pause();
     }

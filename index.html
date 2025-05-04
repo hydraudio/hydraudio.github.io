@@ -82,6 +82,7 @@
     <label id="upload-label" for="fileInput">Enter</label>
     <input type="file" id="fileInput" webkitdirectory multiple />
     <canvas id="discCanvas"></canvas>
+      <audio id="audio" controls style="margin-top: 2rem; display: none;"></audio>
   </div>
 <script type="module">
   import * as THREE from 'https://esm.sh/three@0.152.2';
@@ -109,6 +110,47 @@
     renderer.render(scene, camera);
   }
   animate();
+
+  const fileInput = document.getElementById('fileInput');
+  const audio = document.getElementById('audio');
+  let audioCtx, source, analyser, initialized = false;
+  let playlist = [], current = 0;
+
+  fileInput.addEventListener('change', () => {
+    playlist = Array.from(fileInput.files)
+      .filter(f => f.type.startsWith('audio/'))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    if (playlist.length > 0) {
+      loadTrack(0);
+    }
+  });
+
+  function loadTrack(index) {
+    const file = playlist[index];
+    if (!file) return;
+    const objectURL = URL.createObjectURL(file);
+    audio.src = objectURL;
+    audio.play();
+    resumeContext();
+  }
+
+  function resumeContext() {
+    if (!initialized) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      source = audioCtx.createMediaElementSource(audio);
+      analyser = audioCtx.createAnalyser();
+      source.connect(analyser);
+      analyser.connect(audioCtx.destination);
+      initialized = true;
+    }
+    audioCtx.resume();
+  }
+
+  audio.addEventListener('ended', () => {
+    current = (current + 1) % playlist.length;
+    loadTrack(current);
+  });
 </script>
 </body>
 </html>

@@ -1,7 +1,4 @@
-<script type="module">
-    import * as THREE from 'https://esm.sh/three@0.152.2';
-    window.THREE = THREE;
-  </script>
+
   <style>
     @font-face {
   font-family: 'HydraFont';
@@ -101,5 +98,9 @@
   function animate() {
     requestAnimationFrame(animate);
     disc.rotation.y += 0.01;
-    renderer.render(scene, camer
+    renderer.render(scene, camera);
+  }
+  animate();
+</script>
+</body>
 </html>

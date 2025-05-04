@@ -1,24 +1,27 @@
-// Global variables
-let playlist = [], currentTrack = 0, isLoading = false;
+// Global Variables
+let playlist = [], currentTrack = 0;
 let audio = document.getElementById('audio');
 let trackInfo = document.getElementById('track-info');
 let yandhiVideo = null;
-let audioCtx, source, analyser;
+let audioCtx, analyser, source;
 
-// WebGL for disc animation setup
+// WebGL Renderer and Disc setup
 const canvas = document.getElementById('discCanvas');
 const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
 renderer.setSize(300, 300);
+
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1000);
 camera.position.z = 2;
+
 const disc = new THREE.Mesh(new THREE.CircleGeometry(1, 64), new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide }));
 scene.add(disc);
+
 const light = new THREE.PointLight(0xffffff, 1);
 light.position.set(2, 2, 2);
 scene.add(light);
 
-// Audio context and analyser setup
+// Initialize Audio Context
 function initializeAudioContext() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -30,30 +33,27 @@ function initializeAudioContext() {
   audioCtx.resume();
 }
 
-// Disc rotation animation (when playing audio)
-function animate() {
-  requestAnimationFrame(animate);
+// Animate Disc rotation
+function animateDisc() {
+  requestAnimationFrame(animateDisc);
   if (!audio.paused && audio.src) {
-    disc.rotation.z += 0.01; // Spin the disc when audio is playing
+    disc.rotation.z += 0.01; // Rotate disc when audio is playing
   }
   renderer.render(scene, camera);
 }
-animate();
+animateDisc();
 
-// Handle file input for playlist
+// Handle File Input and Read Tracks
 document.getElementById('fileInput').addEventListener('change', (event) => {
   const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
   playlist = [];
-  isLoading = false;  // Reset the loading state
 
+  // Read metadata from each file
   files.forEach((file) => {
     window.jsmediatags.read(file, {
       onSuccess: (tag) => {
-        const trackNum = parseInt((tag.tags.track || '').toString().split('/')[0]) || 0;
         playlist.push({
           file,
-          trackNum,
-          name: file.name,
           artist: tag.tags.artist || 'Unknown Artist',
           title: tag.tags.title || 'Untitled',
           album: tag.tags.album || 'Unknown Album',
@@ -61,49 +61,44 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
         });
       },
       onError: () => {
-        playlist.push({ file, trackNum: 0, name: file.name });
-      },
+        playlist.push({ file, artist: 'Unknown Artist', title: file.name });
+      }
     });
   });
 
-  playlist.sort((a, b) => a.trackNum - b.trackNum || a.name.localeCompare(b.name));
-  currentTrack = 0;
+  // Sort tracks by name (or track number if available)
+  playlist.sort((a, b) => a.title.localeCompare(b.title));
 
+  currentTrack = 0;
   if (playlist.length > 0) {
     loadTrack(currentTrack);  // Load the first track
   }
 });
 
-// Function to load the track
+// Load Track Function
 function loadTrack(index) {
-  if (isLoading || !playlist[index]) return; // Prevent reloading if already loading or invalid index
-  isLoading = true;
+  if (!playlist[index]) return;
 
-  const entry = playlist[index];
-  const { file, artist, title, album, picture } = entry;
+  const { file, artist, title, album, picture } = playlist[index];
   trackInfo.textContent = `${artist} - ${title}`;
 
   const url = URL.createObjectURL(file);
   audio.src = url;
   audio.load();
 
-  audio.onloadeddata = () => {
-    isLoading = false; // Reset loading flag after track is loaded
-  };
-
-  audio.play().catch(() => {}); // Play the audio when ready
-  initializeAudioContext();
-
-  // Handle Yandhi mode (special video texture)
+  // Handle Yandhi mode and album cover
   if (album.toLowerCase().includes('yandhi')) {
     enableYandhiMode();
   } else {
     disableYandhiMode();
     loadAlbumCover(picture, artist, title);
   }
+
+  audio.play().catch((err) => console.error('Playback failed', err));
+  initializeAudioContext();
 }
 
-// Enable Yandhi Mode with WebM video as album art
+// Enable Yandhi Mode (with video texture)
 function enableYandhiMode() {
   if (!yandhiVideo) {
     yandhiVideo = document.createElement('video');
@@ -112,6 +107,7 @@ function enableYandhiMode() {
     yandhiVideo.muted = true;
     yandhiVideo.playsInline = true;
     yandhiVideo.autoplay = true;
+
     yandhiVideo.play();
 
     const videoTexture = new THREE.VideoTexture(yandhiVideo);
@@ -125,7 +121,7 @@ function enableYandhiMode() {
   }
 }
 
-// Disable Yandhi Mode (stop the video)
+// Disable Yandhi Mode (stop video)
 function disableYandhiMode() {
   if (yandhiVideo) {
     yandhiVideo.pause();
@@ -133,7 +129,7 @@ function disableYandhiMode() {
   }
 }
 
-// Load album cover either from ID3 tags or fallback search
+// Load album cover from ID3 or fallback
 function loadAlbumCover(picture, artist, title) {
   if (picture) {
     const { data, format } = picture;
@@ -186,7 +182,7 @@ document.getElementById('forward').addEventListener('click', () => {
   audio.currentTime = Math.min(audio.currentTime + 10, audio.duration);
 });
 
-// When track ends, load the next one
+// When track ends, load the next track
 audio.addEventListener('ended', () => {
   if (playlist.length > 0) {
     currentTrack = (currentTrack + 1) % playlist.length;
@@ -194,7 +190,7 @@ audio.addEventListener('ended', () => {
   }
 });
 
-// Visualizer (Frequency Bars)
+// Frequency Visualizer for Audio
 const visualCanvas = document.createElement('canvas');
 visualCanvas.width = 600;
 visualCanvas.height = 60;
@@ -204,7 +200,7 @@ const vCtx = visualCanvas.getContext('2d');
 
 function drawVisualizer() {
   requestAnimationFrame(drawVisualizer);
-  if (!initialized) return;
+  if (!audioCtx) return;
   const dataArray = new Uint8Array(analyser.frequencyBinCount);
   analyser.getByteFrequencyData(dataArray);
   vCtx.clearRect(0, 0, visualCanvas.width, visualCanvas.height);

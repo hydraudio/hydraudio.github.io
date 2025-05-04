@@ -1,4 +1,3 @@
-// Global Variables
 let playlist = [], currentTrack = 0;
 let audio = document.getElementById('audio');
 let trackInfo = document.getElementById('track-info');
@@ -18,7 +17,17 @@ const light = new THREE.PointLight(0xffffff, 1);
 light.position.set(2, 2, 2);
 scene.add(light);
 
-// Initialize Audio Context
+// Animation Loop
+function animateDisc() {
+  requestAnimationFrame(animateDisc);
+  if (!audio.paused && audio.src) {
+    disc.rotation.z += 0.01;  // Rotate disc when audio is playing
+  }
+  renderer.render(scene, camera);
+}
+animateDisc();
+
+// Audio Context Initialization
 function initializeAudioContext() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -30,22 +39,11 @@ function initializeAudioContext() {
   audioCtx.resume();
 }
 
-// Disc rotation animation (when playing audio)
-function animateDisc() {
-  requestAnimationFrame(animateDisc);
-  if (!audio.paused && audio.src) {
-    disc.rotation.z += 0.01; // Rotate disc when audio is playing
-  }
-  renderer.render(scene, camera);
-}
-animateDisc();
-
-// Handle File Input and Read Tracks
+// File Input Event
 document.getElementById('fileInput').addEventListener('change', (event) => {
   const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
   playlist = [];
 
-  // Read metadata from each file
   files.forEach((file) => {
     window.jsmediatags.read(file, {
       onSuccess: (tag) => {
@@ -63,27 +61,22 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
     });
   });
 
-  // Sort tracks by name (or track number if available)
   playlist.sort((a, b) => a.title.localeCompare(b.title));
-
   currentTrack = 0;
-  if (playlist.length > 0) {
-    loadTrack(currentTrack);  // Load the first track
-  }
+  if (playlist.length > 0) loadTrack(currentTrack);
 });
 
-// Function to load the track
+// Function to Load Track
 function loadTrack(index) {
   if (!playlist[index]) return;
 
   const { file, artist, title, album, picture } = playlist[index];
   trackInfo.textContent = `${artist} - ${title}`;
-
   const url = URL.createObjectURL(file);
   audio.src = url;
   audio.load();
 
-  // Handle Yandhi mode and album cover
+  // Check if "Yandhi" exists in album name and apply video mode
   if (album.toLowerCase().includes('yandhi')) {
     enableYandhiMode();
   } else {
@@ -104,7 +97,6 @@ function enableYandhiMode() {
     yandhiVideo.muted = true;
     yandhiVideo.playsInline = true;
     yandhiVideo.autoplay = true;
-
     yandhiVideo.play();
 
     const videoTexture = new THREE.VideoTexture(yandhiVideo);
@@ -153,7 +145,7 @@ document.getElementById('play').addEventListener('click', () => {
     audio.play();
   } else {
     audio.pause();
-    disc.rotation.z = 0; // Stop spinning
+    disc.rotation.z = 0;  // Stop spinning
   }
 });
 

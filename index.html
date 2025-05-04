@@ -187,15 +187,31 @@
       if (playlist.length > 0) loadTrack(current);
     });
 
-    function loadTrack(index) {
-      const entry = playlist[index];
-      if (!entry) return;
+function loadTrack(index) {
+  if (loading) return;
+  loading = true;
+
+  if (!playlist || !playlist.length || index < 0 || index >= playlist.length) {
+    loading = false;
+    return;
+  }
+
+  const entry = playlist[index];
+  if (!entry) {
+    loading = false;
+    return;
+  }
+
 
       const { file, artist, title, album, picture } = entry;
       trackInfo.textContent = `${artist || 'Unknown Artist'} - ${title || file.name}`;
       const url = URL.createObjectURL(file);
       audio.src = url;
       audio.load();
+audio.onloadeddata = () => {
+  loading = false;
+};
+
       audio.play().catch(() => {});
       resumeAudio();
 

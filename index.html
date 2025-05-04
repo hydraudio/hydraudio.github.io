@@ -209,8 +209,14 @@
           yandhiVideo.src = 'images/yandhi.webm';
           yandhiVideo.loop = true;
           yandhiVideo.muted = true;
+          yandhiVideo.playsInline = true;
+          yandhiVideo.autoplay = true;
           yandhiVideo.play();
+
           const videoTexture = new THREE.VideoTexture(yandhiVideo);
+          videoTexture.minFilter = THREE.LinearFilter;
+          videoTexture.magFilter = THREE.LinearFilter;
+          videoTexture.format = THREE.RGBFormat;
           material.map = videoTexture;
           material.needsUpdate = true;
         } else {
@@ -221,6 +227,7 @@
           yandhiVideo.pause();
           yandhiVideo = null;
         }
+
         if (entry.picture) {
           const { data, format } = entry.picture;
           const base64 = btoa(String.fromCharCode(...new Uint8Array(data)));

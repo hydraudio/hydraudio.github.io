@@ -125,7 +125,6 @@
   <script type="module">
     import * as THREE from 'https://esm.sh/three@0.152.2';
 
-    // ✅ FIXED: define globals first
     let audioCtx, source, analyser;
     let initialized = false;
     let playlist = [];
@@ -143,7 +142,7 @@
     const geometry = new THREE.CircleGeometry(1, 64);
     const material = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.8, roughness: 0.2 });
     const disc = new THREE.Mesh(geometry, material);
-    disc.rotation.x = -Math.PI / 2; // Lay flat
+    disc.rotation.x = -Math.PI / 2;
     scene.add(disc);
 
     const light = new THREE.PointLight(0xffffff, 1);
@@ -161,19 +160,38 @@
     animate();
 
     const fileInput = document.getElementById('fileInput');
+    fileInput.addEventListener('change', async () => {
+      const files = Array.from(fileInput.files).filter(f => f.type.startsWith('audio/'));
+      const tagged = await Promise.all(
+        files.map(file => new Promise(resolve => {
+          window.jsmediatags.read(file, {
+            onSuccess: tag => {
+              let trackNum = 0;
+              const raw = tag.tags.track;
+              if (raw) {
+                const match = raw.toString().match(/^(\d+)/);
+                if (match) trackNum = parseInt(match[1]);
+              }
+              resolve({ file, trackNum, name: file.name });
+            },
+            onError: () => {
+              resolve({ file, trackNum: 0, name: file.name });
+            }
+          });
+        }))
+      );
 
-    fileInput.addEventListener('change', () => {
-      playlist = Array.from(fileInput.files)
-        .filter(f => f.type.startsWith('audio/'))
-        .sort((a, b) => a.name.localeCompare(b.name));
+      playlist = tagged.sort((a, b) => {
+        if (a.trackNum && b.trackNum) return a.trackNum - b.trackNum;
+        return a.name.localeCompare(b.name);
+      });
 
-      if (playlist.length > 0) {
-        loadTrack(0);
-      }
+      current = 0;
+      if (playlist.length > 0) loadTrack(current);
     });
 
     function loadTrack(index) {
-      const file = playlist[index];
+      const file = playlist[index]?.file;
       if (!file) return;
 
       const objectURL = URL.createObjectURL(file);
@@ -190,14 +208,14 @@
             const base64 = btoa(String.fromCharCode(...new Uint8Array(pic.data)));
             const mime = pic.format;
             const src = `data:${mime};base64,${base64}`;
-            new THREE.TextureLoader().load(src, (texture) => {
+            new THREE.TextureLoader().load(src, texture => {
               material.map = texture;
               material.needsUpdate = true;
             });
           }
         },
-        onError: function(err) {
-          console.warn('No album art found:', err);
+        onError: function() {
+          console.warn('No album art found');
         }
       });
     }

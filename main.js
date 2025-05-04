@@ -1,6 +1,7 @@
+// Create a playlist and track control variables
 let playlist = [], currentTrack = 0;
-let audio = document.getElementById('audio');
 let trackInfo = document.getElementById('track-info');
+let audioPlayer = null;
 
 // Handle file input and create a playlist
 document.getElementById('fileInput').addEventListener('change', (event) => {
@@ -20,7 +21,7 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
   if (playlist.length > 0) loadTrack(currentTrack); // Load the first track automatically
 });
 
-// Load the track and update the track info
+// Function to load a track and update track information
 function loadTrack(index) {
   if (!playlist[index]) return;
 
@@ -28,21 +29,36 @@ function loadTrack(index) {
   trackInfo.textContent = `Playing: ${name}`;
 
   const url = URL.createObjectURL(file);
-  audio.src = url;
-  audio.load();
-  audio.play().catch(err => console.error('Error playing audio:', err));
+
+  // Create a new Howl instance for the audio file
+  audioPlayer = new Howl({
+    src: [url],
+    html5: true,  // Enable HTML5 audio for larger files
+    onend: () => {
+      currentTrack = (currentTrack + 1) % playlist.length;
+      loadTrack(currentTrack); // Automatically play next track
+    },
+    onplayerror: () => {
+      console.error('Error playing audio');
+    }
+  });
+
+  // Play the track
+  audioPlayer.play();
 }
 
-// Play/Pause button
+// Play/Pause button functionality
 document.getElementById('play').addEventListener('click', () => {
-  if (audio.paused) {
-    audio.play();
-  } else {
-    audio.pause();
+  if (audioPlayer) {
+    if (audioPlayer.playing()) {
+      audioPlayer.pause();
+    } else {
+      audioPlayer.play();
+    }
   }
 });
 
-// Next button
+// Next button functionality
 document.getElementById('next').addEventListener('click', () => {
   if (playlist.length > 0) {
     currentTrack = (currentTrack + 1) % playlist.length;
@@ -50,7 +66,7 @@ document.getElementById('next').addEventListener('click', () => {
   }
 });
 
-// Previous button
+// Previous button functionality
 document.getElementById('prev').addEventListener('click', () => {
   if (playlist.length > 0) {
     currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
@@ -58,20 +74,18 @@ document.getElementById('prev').addEventListener('click', () => {
   }
 });
 
-// Rewind 10 seconds
+// Rewind 10 seconds functionality
 document.getElementById('rewind').addEventListener('click', () => {
-  audio.currentTime = Math.max(audio.currentTime - 10, 0);
+  if (audioPlayer) {
+    let currentTime = audioPlayer.seek();
+    audioPlayer.seek(Math.max(currentTime - 10, 0)); // Rewind by 10 seconds
+  }
 });
 
-// Forward 10 seconds
+// Forward 10 seconds functionality
 document.getElementById('forward').addEventListener('click', () => {
-  audio.currentTime = Math.min(audio.currentTime + 10, audio.duration);
-});
-
-// When the track ends, load the next one
-audio.addEventListener('ended', () => {
-  if (playlist.length > 0) {
-    currentTrack = (currentTrack + 1) % playlist.length;
-    loadTrack(currentTrack);
+  if (audioPlayer) {
+    let currentTime = audioPlayer.seek();
+    audioPlayer.seek(Math.min(currentTime + 10, audioPlayer.duration())); // Forward by 10 seconds
   }
 });

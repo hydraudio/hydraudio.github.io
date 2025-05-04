@@ -103,6 +103,12 @@
     #play:hover {
       background: #c60070;
     }
+
+    #track-info {
+      margin-top: 1rem;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -111,8 +117,8 @@
     <label id="upload-label" for="fileInput">Enter</label>
     <input type="file" id="fileInput" webkitdirectory multiple />
     <canvas id="discCanvas"></canvas>
-    <audio id="audio" controls style="margin-top: 2rem; display: none;"></audio>
-
+    <div id="track-info"></div>
+    <audio id="audio" style="display: none;"></audio>
     <div id="controls" style="margin-top: 1.5rem; display: flex; gap: 1rem;">
       <button id="prev">&#x23EE; Previous</button>
       <button id="rewind">&#x23EA; Rewind</button>
@@ -132,6 +138,7 @@
 
     const canvas = document.getElementById('discCanvas');
     const audio = document.getElementById('audio');
+    const trackInfo = document.getElementById('track-info');
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
     renderer.setSize(300, 300);
 
@@ -172,10 +179,10 @@
                 const match = raw.toString().match(/^(\d+)/);
                 if (match) trackNum = parseInt(match[1]);
               }
-              resolve({ file, trackNum, name: file.name });
+              resolve({ file, trackNum, name: file.name, artist: tag.tags.artist, title: tag.tags.title });
             },
             onError: () => {
-              resolve({ file, trackNum: 0, name: file.name });
+              resolve({ file, trackNum: 0, name: file.name, artist: '', title: '' });
             }
           });
         }))
@@ -191,32 +198,49 @@
     });
 
     function loadTrack(index) {
-      const file = playlist[index]?.file;
+      const entry = playlist[index];
+      const file = entry?.file;
       if (!file) return;
+
+      const artist = entry.artist || "Unknown Artist";
+      const title = entry.title || file.name;
+      trackInfo.textContent = `${artist} - ${title}`;
 
       const objectURL = URL.createObjectURL(file);
       audio.src = objectURL;
       audio.load();
       audio.play().catch(err => console.warn('Autoplay blocked:', err));
       resumeContext();
-      audio.style.display = 'block';
 
+      // Try embedded cover first
       window.jsmediatags.read(file, {
-        onSuccess: function(tag) {
+        onSuccess: tag => {
           const pic = tag.tags.picture;
           if (pic) {
             const base64 = btoa(String.fromCharCode(...new Uint8Array(pic.data)));
             const mime = pic.format;
             const src = `data:${mime};base64,${base64}`;
-            new THREE.TextureLoader().load(src, texture => {
-              material.map = texture;
+            new THREE.TextureLoader().load(src, tex => {
+              material.map = tex;
               material.needsUpdate = true;
             });
+          } else {
+            fetchFallbackCover(artist, title);
           }
         },
-        onError: function() {
-          console.warn('No album art found');
+        onError: () => {
+          fetchFallbackCover(artist, title);
         }
+      });
+    }
+
+    function fetchFallbackCover(artist, title) {
+      const query = encodeURIComponent(`${artist} ${title} album cover`);
+      const imgUrl = `https://source.bing.com/images/search?q=${query}&FORM=HDRSC2&first=1`;
+
+      new THREE.TextureLoader().load(imgUrl, tex => {
+        material.map = tex;
+        material.needsUpdate = true;
       });
     }
 
@@ -267,7 +291,6 @@
       loadTrack(current);
     });
 
-    // 🎧 Visualiser
     const visualCanvas = document.createElement('canvas');
     visualCanvas.width = 600;
     visualCanvas.height = 60;

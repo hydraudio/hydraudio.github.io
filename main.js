@@ -11,8 +11,8 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
   files.forEach((file) => {
     playlist.push({
       file,
-      artist: file.name.split('-')[0] || 'Unknown Artist', // Simplified artist extraction
-      title: file.name.split('-')[1] || 'Untitled', // Simplified title extraction
+      artist: file.name.split('-')[0] || 'Unknown Artist', // Artist from the file name
+      title: file.name.split('-')[1] || 'Untitled', // Title from the file name
     });
   });
 

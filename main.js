@@ -8,7 +8,7 @@ let loading = false;
 document.getElementById('fileInput').addEventListener('change', (event) => {
   const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
   playlist = [];
-  
+
   files.forEach((file) => {
     window.jsmediatags.read(file, {
       onSuccess: (tag) => {
@@ -38,11 +38,11 @@ function loadTrack(index) {
 
   const { file, artist, title, album, picture } = playlist[index];
   trackInfo.textContent = `${artist} - ${title}`;
-  
+
   const url = URL.createObjectURL(file);
   audio.src = url;
   audio.load();
-  
+
   // Check if "Yandhi" exists in album name and apply Yandhi mode
   if (album.toLowerCase().includes('yandhi')) {
     enableYandhiMode();
@@ -133,7 +133,7 @@ audio.addEventListener('ended', () => {
   }
 });
 
-// Frequency visualizer for the audio (using an audio context analyser)
+// Simple frequency visualizer for the audio
 const visualCanvas = document.createElement('canvas');
 visualCanvas.width = 600;
 visualCanvas.height = 60;

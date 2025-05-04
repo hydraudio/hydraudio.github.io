@@ -1,4 +1,3 @@
-// Initialize necessary variables
 let playlist = [];
 let currentTrack = 0;
 let audioPlayer = null;

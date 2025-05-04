@@ -126,6 +126,7 @@
     import * as THREE from 'https://esm.sh/three@0.152.2';
 
     const canvas = document.getElementById('discCanvas');
+    const audio = document.getElementById('audio');
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
     renderer.setSize(300, 300);
 
@@ -133,26 +134,27 @@
     const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1000);
     camera.position.z = 2;
 
-    const geometry = new THREE.CylinderGeometry(1, 1, 0.1, 64);
+    const geometry = new THREE.CircleGeometry(1, 64);
     const material = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.8, roughness: 0.2 });
     const disc = new THREE.Mesh(geometry, material);
+    disc.rotation.x = -Math.PI / 2; // lay flat
     scene.add(disc);
 
     const light = new THREE.PointLight(0xffffff, 1);
     light.position.set(2, 2, 2);
     scene.add(light);
 
-const audio = document.getElementById('audio');
+    let audioCtx, source, analyser, initialized = false;
+    let playlist = [], current = 0;
 
-function animate() {
-  requestAnimationFrame(animate);
-  if (!audio.paused && audio.src) {
-    disc.rotation.z += 0.01;
-  }
-  renderer.render(scene, camera);
-}
-animate(); // ✅ now runs after audio is defined
-
+    function animate() {
+      requestAnimationFrame(animate);
+      if (!audio.paused && audio.src) {
+        disc.rotation.z += 0.01;
+      }
+      renderer.render(scene, camera);
+    }
+    animate();
 
     const fileInput = document.getElementById('fileInput');
 
@@ -177,6 +179,7 @@ animate(); // ✅ now runs after audio is defined
       resumeContext();
       audio.style.display = 'block';
 
+      // Album art
       window.jsmediatags.read(file, {
         onSuccess: function(tag) {
           const pic = tag.tags.picture;

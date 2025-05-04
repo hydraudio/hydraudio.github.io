@@ -1,17 +1,109 @@
-let playlist = [], current = 0, initialized = false, loading = false;
+// Global variables and flags
+let playlist = [], current = 0;
 let audioCtx, source, analyser;
 let yandhiVideo = null;
+let initialized = false;
+let loading = false;
+const audio = document.getElementById('audio');
+const trackInfo = document.getElementById('track-info');
+const disc = new THREE.Mesh(
+  new THREE.CircleGeometry(1, 64),
+  new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide })
+);
 
-function animate() {
-  requestAnimationFrame(animate);
-  if (!audio.paused && audio.src) {
-    disc.rotation.z += 0.01; // Disc rotates when audio is playing
+// Setup WebGL renderer and 3D scene
+const canvas = document.getElementById('discCanvas');
+const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+renderer.setSize(300, 300);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1000);
+camera.position.z = 2;
+
+scene.add(disc);
+const light = new THREE.PointLight(0xffffff, 1);
+light.position.set(2, 2, 2);
+scene.add(light);
+
+// Audio playback functionality
+function resumeAudio() {
+  if (!initialized) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    source = audioCtx.createMediaElementSource(audio);
+    analyser = audioCtx.createAnalyser();
+    source.connect(analyser);
+    analyser.connect(audioCtx.destination);
+    initialized = true;
   }
-  renderer.render(scene, camera);
+  audioCtx.resume();
 }
-animate();
 
-// File input handling
+function loadTrack(index) {
+  // Prevent recursive loading
+  if (loading || !playlist[index]) return;
+  loading = true;
+
+  const entry = playlist[index];
+  const { file, artist, title, album, picture } = entry;
+  trackInfo.textContent = `${artist || 'Unknown Artist'} - ${title || file.name}`;
+
+  const url = URL.createObjectURL(file);
+  audio.src = url;
+  audio.load();
+  
+  audio.onloadeddata = () => {
+    loading = false;
+  };
+
+  audio.play().catch(() => {});
+  resumeAudio();
+
+  // Handle Yandhi mode with video texture
+  if (album.toLowerCase().includes("yandhi")) {
+    if (!yandhiVideo) {
+      yandhiVideo = document.createElement('video');
+      yandhiVideo.src = 'images/yandhi.webm';
+      yandhiVideo.loop = true;
+      yandhiVideo.muted = true;
+      yandhiVideo.playsInline = true;
+      yandhiVideo.autoplay = true;
+      yandhiVideo.play();
+
+      const videoTexture = new THREE.VideoTexture(yandhiVideo);
+      videoTexture.minFilter = THREE.LinearFilter;
+      videoTexture.magFilter = THREE.LinearFilter;
+      videoTexture.format = THREE.RGBFormat;
+      disc.material.map = videoTexture;
+      disc.material.needsUpdate = true;
+    } else {
+      yandhiVideo.play();
+    }
+  } else {
+    if (yandhiVideo) {
+      yandhiVideo.pause();
+      yandhiVideo = null;
+    }
+    
+    if (picture) {
+      const { data, format } = picture;
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(data)));
+      const imgURL = `data:${format};base64,${base64}`;
+      new THREE.TextureLoader().load(imgURL, tex => {
+        disc.material.map = tex;
+        disc.material.needsUpdate = true;
+      });
+    } else {
+      const query = encodeURIComponent(`${artist} ${title} album cover`);
+      const fallback = `https://source.bing.com/images/search?q=${query}&FORM=HDRSC2&first=1`;
+      new THREE.TextureLoader().load(fallback, tex => {
+        disc.material.map = tex;
+        disc.material.needsUpdate = true;
+      });
+    }
+  }
+}
+
+// Track input handling
 document.getElementById('fileInput').addEventListener('change', async (event) => {
   const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
   playlist = [];
@@ -43,90 +135,13 @@ document.getElementById('fileInput').addEventListener('change', async (event) =>
   playlist.sort((a, b) => a.trackNum - b.trackNum || a.name.localeCompare(b.name));
   current = 0;
 
-  // Safe track loading
+  // Delay track loading to ensure the playlist is populated
   if (playlist.length > 0) {
-    setTimeout(() => loadTrack(current), 100); // Ensure loadTrack is triggered after the playlist is populated
+    setTimeout(() => loadTrack(current), 100);
   }
 });
 
-// Safe loadTrack call with changes to prevent recursion errors
-function loadTrack(index) {
-  if (loading || !playlist[index]) return;  // Safe exit if already loading or index is invalid
-
-  loading = true;
-
-  const entry = playlist[index];
-  const { file, artist, title, album, picture } = entry;
-
-  trackInfo.textContent = `${artist || 'Unknown Artist'} - ${title || file.name}`;
-  
-  const url = URL.createObjectURL(file);
-  audio.src = url;
-  audio.load();
-
-  audio.onloadeddata = () => {
-    loading = false; // Reset loading flag after the track is loaded
-  };
-
-  audio.play().catch(() => {});
-  resumeAudio();
-
-  if (album.toLowerCase().includes("yandhi")) {
-    if (!yandhiVideo) {
-      yandhiVideo = document.createElement('video');
-      yandhiVideo.src = 'images/yandhi.webm';
-      yandhiVideo.loop = true;
-      yandhiVideo.muted = true;
-      yandhiVideo.playsInline = true;
-      yandhiVideo.autoplay = true;
-      yandhiVideo.play();
-      const videoTexture = new THREE.VideoTexture(yandhiVideo);
-      videoTexture.minFilter = THREE.LinearFilter;
-      videoTexture.magFilter = THREE.LinearFilter;
-      videoTexture.format = THREE.RGBFormat;
-      material.map = videoTexture;
-      material.needsUpdate = true;
-    } else {
-      yandhiVideo.play();
-    }
-  } else {
-    if (yandhiVideo) {
-      yandhiVideo.pause();
-      yandhiVideo = null;
-    }
-
-    if (picture) {
-      const { data, format } = picture;
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(data)));
-      const imgURL = `data:${format};base64,${base64}`;
-      new THREE.TextureLoader().load(imgURL, tex => {
-        material.map = tex;
-        material.needsUpdate = true;
-      });
-    } else {
-      const query = encodeURIComponent(`${artist} ${title} album cover`);
-      const fallback = `https://source.bing.com/images/search?q=${query}&FORM=HDRSC2&first=1`;
-      new THREE.TextureLoader().load(fallback, tex => {
-        material.map = tex;
-        material.needsUpdate = true;
-      });
-    }
-  }
-}
-
-function resumeAudio() {
-  if (!initialized) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    source = audioCtx.createMediaElementSource(audio);
-    analyser = audioCtx.createAnalyser();
-    source.connect(analyser);
-    analyser.connect(audioCtx.destination);
-    initialized = true;
-  }
-  audioCtx.resume();
-}
-
-// Control buttons
+// Control buttons functionality
 document.getElementById('play').addEventListener('click', () => {
   if (!audio.src && playlist.length > 0) {
     loadTrack(current);
@@ -168,7 +183,7 @@ audio.addEventListener('ended', () => {
   }
 });
 
-// Visualizer
+// Frequency visualizer setup
 const visualCanvas = document.createElement('canvas');
 visualCanvas.width = 600;
 visualCanvas.height = 60;

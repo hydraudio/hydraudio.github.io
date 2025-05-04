@@ -2,6 +2,7 @@ let playlist = [], currentTrack = 0;
 let audio = document.getElementById('audio');
 let trackInfo = document.getElementById('track-info');
 let albumArt = document.getElementById('albumArt'); // Assuming there's an image element for the album art
+let volumeControl = document.getElementById('volumeControl'); // Volume slider
 let loading = false;
 let audioPlayer = null;
 
@@ -17,7 +18,16 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
     });
   });
 
-  playlist.sort((a, b) => a.name.localeCompare(b.name)); // Sort tracks by name
+  // Sort by ID3 track number first, then by filename if track number is not available
+  playlist.sort((a, b) => {
+    const aTrack = a.file.track || 0;
+    const bTrack = b.file.track || 0;
+    if (aTrack === bTrack) {
+      return a.name.localeCompare(b.name);
+    }
+    return aTrack - bTrack;
+  });
+
   currentTrack = 0;
 
   if (playlist.length > 0) loadTrack(currentTrack); // Load the first track automatically
@@ -119,6 +129,13 @@ document.getElementById('forward').addEventListener('click', () => {
   if (audioPlayer) {
     let currentTime = audioPlayer.seek();
     audioPlayer.seek(Math.min(currentTime + 10, audioPlayer.duration())); // Forward by 10 seconds
+  }
+});
+
+// Volume control functionality
+volumeControl.addEventListener('input', () => {
+  if (audioPlayer) {
+    audioPlayer.volume(volumeControl.value / 100); // Volume is between 0 and 1, slider is 0 to 100
   }
 });
 

@@ -1,31 +1,24 @@
-// Global Variables and Flags
-let playlist = [];
-let currentTrack = 0;
-let isLoading = false;
-let audioCtx, analyser, source;
-let yandhiVideo = null;
+// Global variables
+let playlist = [], currentTrack = 0, isLoading = false;
 let audio = document.getElementById('audio');
 let trackInfo = document.getElementById('track-info');
-const disc = new THREE.Mesh(
-  new THREE.CircleGeometry(1, 64),
-  new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide })
-);
+let yandhiVideo = null;
+let audioCtx, source, analyser;
 
-// Setup WebGL Renderer and 3D Scene for the disc
+// WebGL for disc animation setup
 const canvas = document.getElementById('discCanvas');
 const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
 renderer.setSize(300, 300);
-
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1000);
 camera.position.z = 2;
-
+const disc = new THREE.Mesh(new THREE.CircleGeometry(1, 64), new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide }));
 scene.add(disc);
 const light = new THREE.PointLight(0xffffff, 1);
 light.position.set(2, 2, 2);
 scene.add(light);
 
-// Audio Context and Visualizer Setup
+// Audio context and analyser setup
 function initializeAudioContext() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -37,7 +30,7 @@ function initializeAudioContext() {
   audioCtx.resume();
 }
 
-// Disc Animation
+// Disc rotation animation (when playing audio)
 function animate() {
   requestAnimationFrame(animate);
   if (!audio.paused && audio.src) {
@@ -47,10 +40,11 @@ function animate() {
 }
 animate();
 
-// Handle File Input and Load Tracks
+// Handle file input for playlist
 document.getElementById('fileInput').addEventListener('change', (event) => {
   const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
   playlist = [];
+  isLoading = false;  // Reset the loading state
 
   files.forEach((file) => {
     window.jsmediatags.read(file, {
@@ -63,7 +57,7 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
           artist: tag.tags.artist || 'Unknown Artist',
           title: tag.tags.title || 'Untitled',
           album: tag.tags.album || 'Unknown Album',
-          picture: tag.tags.picture || null,
+          picture: tag.tags.picture || null
         });
       },
       onError: () => {
@@ -76,13 +70,13 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
   currentTrack = 0;
 
   if (playlist.length > 0) {
-    loadTrack(currentTrack);  // Load the first track once files are loaded
+    loadTrack(currentTrack);  // Load the first track
   }
 });
 
-// Function to Load Track
+// Function to load the track
 function loadTrack(index) {
-  if (isLoading || !playlist[index]) return; // Prevent double-loading
+  if (isLoading || !playlist[index]) return; // Prevent reloading if already loading or invalid index
   isLoading = true;
 
   const entry = playlist[index];
@@ -94,13 +88,13 @@ function loadTrack(index) {
   audio.load();
 
   audio.onloadeddata = () => {
-    isLoading = false; // Finished loading
+    isLoading = false; // Reset loading flag after track is loaded
   };
 
-  audio.play().catch(() => {});
+  audio.play().catch(() => {}); // Play the audio when ready
   initializeAudioContext();
 
-  // Check for Yandhi mode
+  // Handle Yandhi mode (special video texture)
   if (album.toLowerCase().includes('yandhi')) {
     enableYandhiMode();
   } else {
@@ -109,7 +103,7 @@ function loadTrack(index) {
   }
 }
 
-// Enable Yandhi Mode (Video Texture)
+// Enable Yandhi Mode with WebM video as album art
 function enableYandhiMode() {
   if (!yandhiVideo) {
     yandhiVideo = document.createElement('video');
@@ -126,10 +120,12 @@ function enableYandhiMode() {
     videoTexture.format = THREE.RGBFormat;
     disc.material.map = videoTexture;
     disc.material.needsUpdate = true;
+  } else {
+    yandhiVideo.play();
   }
 }
 
-// Disable Yandhi Mode
+// Disable Yandhi Mode (stop the video)
 function disableYandhiMode() {
   if (yandhiVideo) {
     yandhiVideo.pause();
@@ -137,7 +133,7 @@ function disableYandhiMode() {
   }
 }
 
-// Load Album Cover
+// Load album cover either from ID3 tags or fallback search
 function loadAlbumCover(picture, artist, title) {
   if (picture) {
     const { data, format } = picture;
@@ -157,25 +153,29 @@ function loadAlbumCover(picture, artist, title) {
   }
 }
 
-// Controls for Playback
+// Control Buttons (Play, Pause, Next, Previous, etc.)
 document.getElementById('play').addEventListener('click', () => {
   if (audio.paused) {
     initializeAudioContext();
     audio.play();
   } else {
     audio.pause();
-    disc.rotation.z = 0; // Stop spinning if paused
+    disc.rotation.z = 0; // Stop spinning when paused
   }
 });
 
 document.getElementById('next').addEventListener('click', () => {
-  currentTrack = (currentTrack + 1) % playlist.length;
-  loadTrack(currentTrack);
+  if (playlist.length > 0) {
+    currentTrack = (currentTrack + 1) % playlist.length;
+    loadTrack(currentTrack);
+  }
 });
 
 document.getElementById('prev').addEventListener('click', () => {
-  currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
-  loadTrack(currentTrack);
+  if (playlist.length > 0) {
+    currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
+    loadTrack(currentTrack);
+  }
 });
 
 document.getElementById('rewind').addEventListener('click', () => {
@@ -186,13 +186,15 @@ document.getElementById('forward').addEventListener('click', () => {
   audio.currentTime = Math.min(audio.currentTime + 10, audio.duration);
 });
 
-// When Track Ends, Load Next Track
+// When track ends, load the next one
 audio.addEventListener('ended', () => {
-  currentTrack = (currentTrack + 1) % playlist.length;
-  loadTrack(currentTrack);
+  if (playlist.length > 0) {
+    currentTrack = (currentTrack + 1) % playlist.length;
+    loadTrack(currentTrack);
+  }
 });
 
-// Visualizer for Audio Frequency
+// Visualizer (Frequency Bars)
 const visualCanvas = document.createElement('canvas');
 visualCanvas.width = 600;
 visualCanvas.height = 60;

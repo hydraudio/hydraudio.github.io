@@ -142,19 +142,17 @@
     light.position.set(2, 2, 2);
     scene.add(light);
 
-    const audio = document.getElementById('audio');
-    let audioCtx, source, analyser, initialized = false;
-    let playlist = [], current = 0;
+const audio = document.getElementById('audio');
 
-    function animate() {
-      requestAnimationFrame(animate);
-      if (!audio.paused && audio.src) {
-        disc.rotation.z += 0.01;
-      }
-      renderer.render(scene, camera);
-    }
+function animate() {
+  requestAnimationFrame(animate);
+  if (!audio.paused && audio.src) {
+    disc.rotation.z += 0.01;
+  }
+  renderer.render(scene, camera);
+}
+animate(); // ✅ now runs after audio is defined
 
-    animate();
 
     const fileInput = document.getElementById('fileInput');
 

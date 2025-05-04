@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <title>Hydraudio</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
   <style>
     @font-face {
       font-family: 'HydraFont';
@@ -73,24 +73,7 @@
       height: 300px;
       margin-top: 3rem;
     }
-  </style>
-</head>
-<body>
-  <div id="container">
-    <h1>Hydraudio</h1>
-    <label id="upload-label" for="fileInput">Enter</label>
-    <input type="file" id="fileInput" webkitdirectory multiple />
-    <canvas id="discCanvas"></canvas>
-      <audio id="audio" controls style="margin-top: 2rem; display: none;"></audio>
-      <div id="controls" style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-  <button id="prev">⏮ Previous</button>
-  <button id="rewind">⏪ Rewind</button>
-  <button id="play">▶ Play</button>
-  <button id="forward">Forward ⏩</button>
-  <button id="next">Next ⏭</button>
-</div>
 
-    <style>
     #controls button {
       background: #fff;
       color: #000;
@@ -120,130 +103,168 @@
     #play:hover {
       background: #c60070;
     }
-    </style>
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h1>Hydraudio</h1>
+    <label id="upload-label" for="fileInput">Enter</label>
+    <input type="file" id="fileInput" webkitdirectory multiple />
+    <canvas id="discCanvas"></canvas>
+    <audio id="audio" controls style="margin-top: 2rem; display: none;"></audio>
 
+    <div id="controls" style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+      <button id="prev">&#x23EE; Previous</button>
+      <button id="rewind">&#x23EA; Rewind</button>
+      <button id="play">&#x25B6; Play</button>
+      <button id="forward">Forward &#x23E9;</button>
+      <button id="next">Next &#x23ED;</button>
+    </div>
   </div>
-<script type="module">
-  import * as THREE from 'https://esm.sh/three@0.152.2';
 
-  const canvas = document.getElementById('discCanvas');
-  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
-  renderer.setSize(300, 300);
+  <script type="module">
+    import * as THREE from 'https://esm.sh/three@0.152.2';
 
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1000);
-  camera.position.z = 2;
+    const canvas = document.getElementById('discCanvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+    renderer.setSize(300, 300);
 
-  const geometry = new THREE.CylinderGeometry(1, 1, 0.1, 64);
-  const material = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.8, roughness: 0.2 });
-  const disc = new THREE.Mesh(geometry, material);
-  scene.add(disc);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1000);
+    camera.position.z = 2;
 
-  const light = new THREE.PointLight(0xffffff, 1);
-  light.position.set(2, 2, 2);
-  scene.add(light);
+    const geometry = new THREE.CylinderGeometry(1, 1, 0.1, 64);
+    const material = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.8, roughness: 0.2 });
+    const disc = new THREE.Mesh(geometry, material);
+    scene.add(disc);
 
-  function animate() {
-    requestAnimationFrame(animate);
-    disc.rotation.y += 0.01;
-    renderer.render(scene, camera);
-  }
-  animate();
+    const light = new THREE.PointLight(0xffffff, 1);
+    light.position.set(2, 2, 2);
+    scene.add(light);
 
-  const fileInput = document.getElementById('fileInput');
-  const audio = document.getElementById('audio');
-  let audioCtx, source, analyser, initialized = false;
-  let playlist = [], current = 0;
-
-  fileInput.addEventListener('change', () => {
-    playlist = Array.from(fileInput.files)
-      .filter(f => f.type.startsWith('audio/'))
-      .sort((a, b) => a.name.localeCompare(b.name));
-
-    if (playlist.length > 0) {
-      loadTrack(0);
+    function animate() {
+      requestAnimationFrame(animate);
+      if (!audio.paused) {
+        disc.rotation.y += 0.01;
+      }
+      renderer.render(scene, camera);
     }
-  });
+    animate();
 
-  function loadTrack(index) {
-    const file = playlist[index];
-    if (!file) return;
-    const objectURL = URL.createObjectURL(file);
-    audio.src = objectURL;
-    audio.load();
-    audio.play().catch(err => console.warn('Autoplay blocked:', err));
-    resumeContext();
-    audio.style.display = 'block';
-  }
+    const fileInput = document.getElementById('fileInput');
+    const audio = document.getElementById('audio');
+    let audioCtx, source, analyser, initialized = false;
+    let playlist = [], current = 0;
 
-  function resumeContext() {
-    if (!initialized) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      source = audioCtx.createMediaElementSource(audio);
-      analyser = audioCtx.createAnalyser();
-      source.connect(analyser);
-      analyser.connect(audioCtx.destination);
-      initialized = true;
-    }
-    audioCtx.resume();
-  }
+    fileInput.addEventListener('change', () => {
+      playlist = Array.from(fileInput.files)
+        .filter(f => f.type.startsWith('audio/'))
+        .sort((a, b) => a.name.localeCompare(b.name));
 
-  document.getElementById('play').addEventListener('click', () => {
-    if (!audio.src && playlist.length > 0) {
-      loadTrack(current);
-    } else if (audio.paused) {
+      if (playlist.length > 0) {
+        loadTrack(0);
+      }
+    });
+
+    function loadTrack(index) {
+      const file = playlist[index];
+      if (!file) return;
+
+      const objectURL = URL.createObjectURL(file);
+      audio.src = objectURL;
+      audio.load();
+      audio.play().catch(err => console.warn('Autoplay blocked:', err));
       resumeContext();
-      audio.play();
-    } else {
-      audio.pause();
+      audio.style.display = 'block';
+
+      // 🖼 Album art
+      window.jsmediatags.read(file, {
+        onSuccess: function(tag) {
+          const pic = tag.tags.picture;
+          if (pic) {
+            const base64 = btoa(String.fromCharCode(...new Uint8Array(pic.data)));
+            const mime = pic.format;
+            const src = `data:${mime};base64,${base64}`;
+            new THREE.TextureLoader().load(src, (texture) => {
+              material.map = texture;
+              material.needsUpdate = true;
+            });
+          }
+        },
+        onError: function(err) {
+          console.warn('No album art found:', err);
+        }
+      });
     }
-  });
 
-  document.getElementById('next').addEventListener('click', () => {
-    current = (current + 1) % playlist.length;
-    loadTrack(current);
-  });
-
-  document.getElementById('prev').addEventListener('click', () => {
-    current = (current - 1 + playlist.length) % playlist.length;
-    loadTrack(current);
-  });
-
-  document.getElementById('rewind').addEventListener('click', () => {
-    audio.currentTime = Math.max(audio.currentTime - 10, 0);
-  });
-
-  document.getElementById('forward').addEventListener('click', () => {
-    audio.currentTime = Math.min(audio.currentTime + 10, audio.duration);
-  });
-
-  audio.addEventListener('ended', () => {
-    current = (current + 1) % playlist.length;
-    loadTrack(current);
-  });
-  });
-// 🎧 Visualiser
-  const visualCanvas = document.createElement('canvas');
-  visualCanvas.width = 600;
-  visualCanvas.height = 60;
-  visualCanvas.style.marginTop = '2rem';
-  document.getElementById('container').appendChild(visualCanvas);
-  const vCtx = visualCanvas.getContext('2d');
-
-  function drawViz() {
-    requestAnimationFrame(drawViz);
-    if (!initialized) return;
-    const dataArray = new Uint8Array(analyser.frequencyBinCount);
-    analyser.getByteFrequencyData(dataArray);
-    vCtx.clearRect(0, 0, visualCanvas.width, visualCanvas.height);
-    const barWidth = visualCanvas.width / dataArray.length;
-    for (let i = 0; i < dataArray.length; i++) {
-      const barHeight = dataArray[i] / 2;
-      vCtx.fillStyle = `rgb(${barHeight + 100}, 0, ${255 - barHeight})`;
-      vCtx.fillRect(i * barWidth, visualCanvas.height - barHeight, barWidth - 1, barHeight);
+    function resumeContext() {
+      if (!initialized) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        source = audioCtx.createMediaElementSource(audio);
+        analyser = audioCtx.createAnalyser();
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        initialized = true;
+      }
+      audioCtx.resume();
     }
-  }
-  drawViz();
-</script>
+
+    document.getElementById('play').addEventListener('click', () => {
+      if (!audio.src && playlist.length > 0) {
+        loadTrack(current);
+      } else if (audio.paused) {
+        resumeContext();
+        audio.play();
+      } else {
+        audio.pause();
+      }
+    });
+
+    document.getElementById('next').addEventListener('click', () => {
+      current = (current + 1) % playlist.length;
+      loadTrack(current);
+    });
+
+    document.getElementById('prev').addEventListener('click', () => {
+      current = (current - 1 + playlist.length) % playlist.length;
+      loadTrack(current);
+    });
+
+    document.getElementById('rewind').addEventListener('click', () => {
+      audio.currentTime = Math.max(audio.currentTime - 10, 0);
+    });
+
+    document.getElementById('forward').addEventListener('click', () => {
+      audio.currentTime = Math.min(audio.currentTime + 10, audio.duration);
+    });
+
+    audio.addEventListener('ended', () => {
+      current = (current + 1) % playlist.length;
+      loadTrack(current);
+    });
+
+    // 🎧 Visualiser
+    const visualCanvas = document.createElement('canvas');
+    visualCanvas.width = 600;
+    visualCanvas.height = 60;
+    visualCanvas.style.marginTop = '2rem';
+    document.getElementById('container').appendChild(visualCanvas);
+    const vCtx = visualCanvas.getContext('2d');
+
+    function drawViz() {
+      requestAnimationFrame(drawViz);
+      if (!initialized) return;
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(dataArray);
+      vCtx.clearRect(0, 0, visualCanvas.width, visualCanvas.height);
+      const barWidth = visualCanvas.width / dataArray.length;
+      for (let i = 0; i < dataArray.length; i++) {
+        const barHeight = dataArray[i] / 2;
+        vCtx.fillStyle = `rgb(${barHeight + 100}, 0, ${255 - barHeight})`;
+        vCtx.fillRect(i * barWidth, visualCanvas.height - barHeight, barWidth - 1, barHeight);
+      }
+    }
+    drawViz();
+  </script>
 </body>
 </html>

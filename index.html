@@ -131,8 +131,10 @@
     if (!file) return;
     const objectURL = URL.createObjectURL(file);
     audio.src = objectURL;
-    audio.play();
+    audio.load();
+    audio.play().catch(err => console.warn('Autoplay blocked:', err));
     resumeContext();
+    audio.style.display = 'block';
   }
 
   function resumeContext() {

@@ -15,7 +15,7 @@ animate();
 document.getElementById('fileInput').addEventListener('change', async (event) => {
   const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
   playlist = [];
-  
+
   for (let file of files) {
     await new Promise(resolve => {
       window.jsmediatags.read(file, {
@@ -42,7 +42,8 @@ document.getElementById('fileInput').addEventListener('change', async (event) =>
 
   playlist.sort((a, b) => a.trackNum - b.trackNum || a.name.localeCompare(b.name));
   current = 0;
-  
+
+  // Safe track loading
   if (playlist.length > 0) {
     setTimeout(() => loadTrack(current), 100); // Ensure loadTrack is triggered after the playlist is populated
   }

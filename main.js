@@ -1,7 +1,6 @@
 let playlist = [], currentTrack = 0;
 let audio = document.getElementById('audio');
 let trackInfo = document.getElementById('track-info');
-let yandhiImage = null; // Store the Yandhi image element
 let loading = false;
 
 // Load the playlist from the selected files
@@ -10,19 +9,10 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
   playlist = [];
 
   files.forEach((file) => {
-    window.jsmediatags.read(file, {
-      onSuccess: (tag) => {
-        playlist.push({
-          file,
-          artist: tag.tags.artist || 'Unknown Artist',
-          title: tag.tags.title || 'Untitled',
-          album: tag.tags.album || 'Unknown Album',
-          picture: tag.tags.picture || null
-        });
-      },
-      onError: () => {
-        playlist.push({ file, artist: 'Unknown Artist', title: file.name });
-      }
+    playlist.push({
+      file,
+      artist: file.name.split('-')[0] || 'Unknown Artist', // Simplified artist extraction
+      title: file.name.split('-')[1] || 'Untitled', // Simplified title extraction
     });
   });
 
@@ -31,67 +21,20 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
   if (playlist.length > 0) loadTrack(currentTrack);
 });
 
-// Load track and handle album artwork and Yandhi mode
+// Load track and display track information
 function loadTrack(index) {
   if (loading || !playlist[index]) return;
   loading = true;
 
-  const { file, artist, title, album, picture } = playlist[index];
+  const { file, artist, title } = playlist[index];
   trackInfo.textContent = `${artist} - ${title}`;
-
+  
   const url = URL.createObjectURL(file);
   audio.src = url;
   audio.load();
-
-  // Check if "Yandhi" exists in album name and apply Yandhi mode
-  if (album.toLowerCase().includes('yandhi')) {
-    enableYandhiMode();
-  } else {
-    disableYandhiMode();
-    loadAlbumCover(picture);
-  }
-
   audio.play().catch(err => console.error('Error playing audio', err));
+
   loading = false;
-}
-
-// Enable Yandhi Mode (Display Yandhi image)
-function enableYandhiMode() {
-  if (!yandhiImage) {
-    yandhiImage = new Image();
-    yandhiImage.src = 'images/yandhi.gif';
-    yandhiImage.id = 'yandhiImage';
-    yandhiImage.style.width = '300px';
-    document.getElementById('container').appendChild(yandhiImage);
-  }
-}
-
-// Disable Yandhi Mode (Remove Yandhi image)
-function disableYandhiMode() {
-  if (yandhiImage) {
-    yandhiImage.remove();
-    yandhiImage = null;
-  }
-}
-
-// Load album cover from ID3 or fallback
-function loadAlbumCover(picture) {
-  if (picture) {
-    const { data, format } = picture;
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(data)));
-    const imgURL = `data:${format};base64,${base64}`;
-    const img = new Image();
-    img.src = imgURL;
-    img.style.width = '300px';
-    document.getElementById('container').appendChild(img);
-  } else {
-    const query = encodeURIComponent('album cover');
-    const fallback = `https://source.bing.com/images/search?q=${query}&FORM=HDRSC2&first=1`;
-    const img = new Image();
-    img.src = fallback;
-    img.style.width = '300px';
-    document.getElementById('container').appendChild(img);
-  }
 }
 
 // Audio control buttons
@@ -133,7 +76,7 @@ audio.addEventListener('ended', () => {
   }
 });
 
-// Simple frequency visualizer for the audio
+// Initialize audio context for frequency visualization (simplified)
 const visualCanvas = document.createElement('canvas');
 visualCanvas.width = 600;
 visualCanvas.height = 60;

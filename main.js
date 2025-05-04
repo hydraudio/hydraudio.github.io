@@ -1,9 +1,8 @@
 let playlist = [], currentTrack = 0;
 let audio = document.getElementById('audio');
 let trackInfo = document.getElementById('track-info');
-let loading = false;
 
-// Load the playlist from the selected files
+// Handle file input and create a playlist
 document.getElementById('fileInput').addEventListener('change', (event) => {
   const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
   playlist = [];
@@ -21,10 +20,9 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
   if (playlist.length > 0) loadTrack(currentTrack); // Load the first track automatically
 });
 
-// Load the track, display track info, and play it
+// Load the track and update the track info
 function loadTrack(index) {
-  if (loading || !playlist[index]) return;
-  loading = true;
+  if (!playlist[index]) return;
 
   const { file, name } = playlist[index];
   trackInfo.textContent = `Playing: ${name}`;
@@ -33,11 +31,9 @@ function loadTrack(index) {
   audio.src = url;
   audio.load();
   audio.play().catch(err => console.error('Error playing audio:', err));
-
-  loading = false;
 }
 
-// Play/Pause button functionality
+// Play/Pause button
 document.getElementById('play').addEventListener('click', () => {
   if (audio.paused) {
     audio.play();
@@ -46,18 +42,18 @@ document.getElementById('play').addEventListener('click', () => {
   }
 });
 
-// Next button functionality
+// Next button
 document.getElementById('next').addEventListener('click', () => {
   if (playlist.length > 0) {
-    currentTrack = (currentTrack + 1) % playlist.length; // Loop back to start
+    currentTrack = (currentTrack + 1) % playlist.length;
     loadTrack(currentTrack);
   }
 });
 
-// Previous button functionality
+// Previous button
 document.getElementById('prev').addEventListener('click', () => {
   if (playlist.length > 0) {
-    currentTrack = (currentTrack - 1 + playlist.length) % playlist.length; // Loop backwards
+    currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
     loadTrack(currentTrack);
   }
 });
@@ -72,7 +68,7 @@ document.getElementById('forward').addEventListener('click', () => {
   audio.currentTime = Math.min(audio.currentTime + 10, audio.duration);
 });
 
-// When track ends, automatically go to the next one
+// When the track ends, load the next one
 audio.addEventListener('ended', () => {
   if (playlist.length > 0) {
     currentTrack = (currentTrack + 1) % playlist.length;

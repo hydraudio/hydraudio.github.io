@@ -83,6 +83,44 @@
     <input type="file" id="fileInput" webkitdirectory multiple />
     <canvas id="discCanvas"></canvas>
       <audio id="audio" controls style="margin-top: 2rem; display: none;"></audio>
+      <div id="controls" style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+      $1⏮️ Previous$2
+      $1⏪ Rewind$2
+      $1▶️ Play$2
+      $1Forward ⏩$2
+      $1Next ⏭️$2
+    </div>
+
+    <style>
+      #controls button {
+        background: #000;
+        color: #fff;
+        font-family: 'HydraFont', sans-serif;
+        border: none;
+        padding: 0.75rem 1.2rem;
+        font-size: 1.1rem;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      #controls button:hover {
+        background: #444;
+      }
+
+      #play {
+        background: #ff0090;
+        color: white;
+        font-weight: bold;
+        font-size: 1.2rem;
+        box-shadow: 0 0 10px #ff0090aa;
+      }
+
+      #play:hover {
+        background: #c60070;
+      }
+    </style>
+
   </div>
 <script type="module">
   import * as THREE from 'https://esm.sh/three@0.152.2';
@@ -149,9 +187,39 @@
     audioCtx.resume();
   }
 
+  document.getElementById('play').addEventListener('click', () => {
+    if (!audio.src && playlist.length > 0) {
+      loadTrack(current);
+    } else if (audio.paused) {
+      resumeContext();
+      audio.play();
+    } else {
+      audio.pause();
+    }
+  });
+
+  document.getElementById('next').addEventListener('click', () => {
+    current = (current + 1) % playlist.length;
+    loadTrack(current);
+  });
+
+  document.getElementById('prev').addEventListener('click', () => {
+    current = (current - 1 + playlist.length) % playlist.length;
+    loadTrack(current);
+  });
+
+  document.getElementById('rewind').addEventListener('click', () => {
+    audio.currentTime = Math.max(audio.currentTime - 10, 0);
+  });
+
+  document.getElementById('forward').addEventListener('click', () => {
+    audio.currentTime = Math.min(audio.currentTime + 10, audio.duration);
+  });
+
   audio.addEventListener('ended', () => {
     current = (current + 1) % playlist.length;
     loadTrack(current);
+  });
   });
 </script>
 </body>

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -151,7 +152,6 @@
       }
       renderer.render(scene, camera);
     }
-
     animate();
 
     document.getElementById('fileInput').addEventListener('change', async (event) => {
@@ -184,19 +184,15 @@
 
       playlist.sort((a, b) => a.trackNum - b.trackNum || a.name.localeCompare(b.name));
       current = 0;
-      loadTrack(current);
+      if (playlist.length > 0) loadTrack(current);
     });
 
     function loadTrack(index) {
       const entry = playlist[index];
       if (!entry) return;
 
-      const file = entry.file;
-      const artist = entry.artist || "Unknown Artist";
-      const title = entry.title || file.name;
-      const album = entry.album || '';
-
-      trackInfo.textContent = `${artist} - ${title}`;
+      const { file, artist, title, album, picture } = entry;
+      trackInfo.textContent = `${artist || 'Unknown Artist'} - ${title || file.name}`;
       const url = URL.createObjectURL(file);
       audio.src = url;
       audio.load();
@@ -212,7 +208,6 @@
           yandhiVideo.playsInline = true;
           yandhiVideo.autoplay = true;
           yandhiVideo.play();
-
           const videoTexture = new THREE.VideoTexture(yandhiVideo);
           videoTexture.minFilter = THREE.LinearFilter;
           videoTexture.magFilter = THREE.LinearFilter;
@@ -228,8 +223,8 @@
           yandhiVideo = null;
         }
 
-        if (entry.picture) {
-          const { data, format } = entry.picture;
+        if (picture) {
+          const { data, format } = picture;
           const base64 = btoa(String.fromCharCode(...new Uint8Array(data)));
           const imgURL = `data:${format};base64,${base64}`;
           new THREE.TextureLoader().load(imgURL, tex => {
@@ -272,13 +267,17 @@
     });
 
     document.getElementById('next').addEventListener('click', () => {
-      current = (current + 1) % playlist.length;
-      loadTrack(current);
+      if (playlist.length > 0) {
+        current = (current + 1) % playlist.length;
+        loadTrack(current);
+      }
     });
 
     document.getElementById('prev').addEventListener('click', () => {
-      current = (current - 1 + playlist.length) % playlist.length;
-      loadTrack(current);
+      if (playlist.length > 0) {
+        current = (current - 1 + playlist.length) % playlist.length;
+        loadTrack(current);
+      }
     });
 
     document.getElementById('rewind').addEventListener('click', () => {
@@ -290,11 +289,12 @@
     });
 
     audio.addEventListener('ended', () => {
-      current = (current + 1) % playlist.length;
-      loadTrack(current);
+      if (playlist.length > 0) {
+        current = (current + 1) % playlist.length;
+        loadTrack(current);
+      }
     });
 
-    // Visualiser
     const visualCanvas = document.createElement('canvas');
     visualCanvas.width = 600;
     visualCanvas.height = 60;
@@ -315,7 +315,6 @@
         vCtx.fillRect(i * barWidth, visualCanvas.height - barHeight, barWidth - 1, barHeight);
       }
     }
-
     drawViz();
   </script>
 </body>

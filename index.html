@@ -9,7 +9,7 @@
   <style>
     @font-face {
       font-family: 'HydraFont';
-      src: url('/Roboto-SemiBold.ttf') format('truetype');
+      src: url('fonts/Roboto-SemiBold.ttf') format('truetype');
       font-weight: 600;
       font-style: normal;
     }
@@ -177,7 +177,7 @@
       resumeContext();
       audio.style.display = 'block';
 
-      // 🖼 Album art
+      // Load album art using jsmediatags
       window.jsmediatags.read(file, {
         onSuccess: function(tag) {
           const pic = tag.tags.picture;

@@ -62,9 +62,13 @@ document.getElementById('fileInput').addEventListener('change', async (event) =>
     });
   }
 
-  playlist.sort((a, b) => a.trackNum - b.trackNum || a.name.localeCompare(b.name));
-  current = 0;
-  if (playlist.length > 0) loadTrack(current); // ✅ Safe call now
+ playlist.sort((a, b) => a.trackNum - b.trackNum || a.name.localeCompare(b.name));
+current = 0;
+
+if (!loading && playlist.length > 0) {
+  loadTrack(current);
+}
+
 });
 
 function loadTrack(index) {

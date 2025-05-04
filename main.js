@@ -3,7 +3,6 @@ import * as THREE from 'https://esm.sh/three@0.152.2';
 const canvas = document.getElementById('discCanvas');
 const audio = document.getElementById('audio');
 const trackInfo = document.getElementById('track-info');
-
 const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
 renderer.setSize(300, 300);
 
@@ -34,6 +33,7 @@ function animate() {
 }
 animate();
 
+// File input handling
 document.getElementById('fileInput').addEventListener('change', async (event) => {
   const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
   playlist = [];
@@ -62,25 +62,17 @@ document.getElementById('fileInput').addEventListener('change', async (event) =>
     });
   }
 
- playlist.sort((a, b) => a.trackNum - b.trackNum || a.name.localeCompare(b.name));
-current = 0;
-
-setTimeout(() => {
-  if (!loading && playlist.length > 0) {
-    console.log("✅ Safe loading track:", current);
-    loadTrack(current);
-  }
-}, 10);
-
-
+  playlist.sort((a, b) => a.trackNum - b.trackNum || a.name.localeCompare(b.name));
+  current = 0;
+  if (playlist.length > 0) setTimeout(() => loadTrack(current), 0);
 });
 
+// Safe loadTrack call
 function loadTrack(index) {
   if (loading) return;
   loading = true;
 
   const entry = playlist[index];
-  audio.onloadeddata = null;
   if (!entry) {
     loading = false;
     return;
@@ -88,13 +80,15 @@ function loadTrack(index) {
 
   const { file, artist, title, album, picture } = entry;
   trackInfo.textContent = `${artist || 'Unknown Artist'} - ${title || file.name}`;
-
+  
   const url = URL.createObjectURL(file);
   audio.src = url;
   audio.load();
-  audio.onloadedmetadata = () => {
-  loading = false;
-};
+
+  audio.onloadeddata = () => {
+    loading = false; // Reset loading flag after the track is loaded
+  };
+
   audio.play().catch(() => {});
   resumeAudio();
 
@@ -110,6 +104,7 @@ function loadTrack(index) {
       const videoTexture = new THREE.VideoTexture(yandhiVideo);
       videoTexture.minFilter = THREE.LinearFilter;
       videoTexture.magFilter = THREE.LinearFilter;
+      videoTexture.format = THREE.RGBFormat;
       material.map = videoTexture;
       material.needsUpdate = true;
     } else {
@@ -140,6 +135,7 @@ function loadTrack(index) {
   }
 }
 
+// Audio context and analyser
 function resumeAudio() {
   if (!initialized) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -152,6 +148,7 @@ function resumeAudio() {
   audioCtx.resume();
 }
 
+// Control buttons
 document.getElementById('play').addEventListener('click', () => {
   if (!audio.src && playlist.length > 0) {
     loadTrack(current);
@@ -193,6 +190,7 @@ audio.addEventListener('ended', () => {
   }
 });
 
+// Visualizer
 const visualCanvas = document.createElement('canvas');
 visualCanvas.width = 600;
 visualCanvas.height = 60;
@@ -213,4 +211,5 @@ function drawViz() {
     vCtx.fillRect(i * barWidth, visualCanvas.height - barHeight, barWidth - 1, barHeight);
   }
 }
+
 drawViz();

@@ -4,41 +4,65 @@
   <meta charset="UTF-8">
   <title>Hydraudio</title>
   <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
+  <script type="module">
+    import * as THREE from 'https://cdn.skypack.dev/three';
+    window.THREE = THREE;
+  </script>
   <style>
+    @font-face {
+      font-family: 'HydraFont';
+      src: url('https://fonts.cdnfonts.com/s/15018/HelveticaNowDisplay-Bold.woff') format('woff');
+      font-weight: bold;
+    }
+
     :root {
-      --primary: #000;
-      --bg: #fdfdfd;
-      --accent: #ff00cc;
+      --bg: #f5f5f5;
+      --text: #000;
+      --accent: #000;
     }
 
     body {
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
       background: var(--bg);
-      color: var(--primary);
+      color: var(--text);
+      font-family: 'HydraFont', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #container {
+      text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 2rem;
-      text-align: center;
     }
 
     h1 {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      color: var(--primary);
+      font-size: 3rem;
+      margin-bottom: 2rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     #upload-label {
-      background: var(--accent);
-      color: white;
+      background: transparent;
+      border: 2px solid var(--accent);
+      color: var(--accent);
       padding: 1rem 2rem;
-      font-size: 1.1rem;
+      font-size: 1.2rem;
       font-weight: bold;
-      border-radius: 2rem;
+      border-radius: 100px;
       cursor: pointer;
-      box-shadow: 0 0 15px #ff00cc55;
-      margin-bottom: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    #upload-label:hover {
+      background: var(--accent);
+      color: var(--bg);
     }
 
     input[type="file"] {
@@ -48,229 +72,16 @@
     #discCanvas {
       width: 300px;
       height: 300px;
-      border-radius: 50%;
-      margin: 2rem auto;
-      display: block;
-    }
-
-    #track-title {
-      font-size: 1.1rem;
-      margin-top: 1rem;
-    }
-
-    #controls {
-      display: flex;
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-
-    button {
-      padding: 0.6rem 1.2rem;
-      font-size: 1rem;
-      border-radius: 1rem;
-      border: none;
-      background: var(--primary);
-      color: var(--bg);
-      cursor: pointer;
-    }
-
-    button:hover {
-      background: var(--accent);
-    }
-
-    #playlist {
-      margin-top: 2rem;
-      width: 100%;
-      max-width: 400px;
-      font-size: 0.9rem;
-      text-align: left;
-      color: #444;
-    }
-
-    #playlist div {
-      padding: 6px 12px;
-      border-bottom: 1px solid #ddd;
-      cursor: pointer;
-    }
-
-    #playlist div.active {
-      background: #ffe0f5;
-      color: #d10077;
-      font-weight: bold;
-    }
-
-    #visualizer {
-      width: 100%;
-      max-width: 600px;
-      height: 60px;
       margin-top: 3rem;
-      background: #eee;
-      border-radius: 8px;
-      overflow: hidden;
     }
   </style>
 </head>
 <body>
-  <h1>Hydraudio</h1>
-  <label id="upload-label" for="fileInput">📁 Load Album Folder</label>
-  <input type="file" id="fileInput" webkitdirectory multiple />
-  <canvas id="discCanvas"></canvas>
-  <div id="track-title">No track loaded</div>
-  <div id="controls">
-    <button onclick="prevTrack()">⏮ Prev</button>
-    <button onclick="togglePlay()">▶️/⏸ Play</button>
-    <button onclick="nextTrack()">⏭ Next</button>
+  <div id="container">
+    <h1>Hydraudio</h1>
+    <label id="upload-label" for="fileInput">Enter</label>
+    <input type="file" id="fileInput" webkitdirectory multiple />
+    <canvas id="discCanvas"></canvas>
   </div>
-  <div id="playlist"></div>
-  <canvas id="visualizer"></canvas>
-  <audio id="audio" controls></audio>
-
-  <script type="module">
-    import * as THREE from 'https://cdn.skypack.dev/three';
-
-    const audio = document.getElementById("audio");
-    const canvas = document.getElementById('discCanvas');
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
-    renderer.setSize(300, 300);
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1000);
-    camera.position.z = 2;
-
-    const geometry = new THREE.CylinderGeometry(1, 1, 0.1, 64);
-    const material = new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.8, roughness: 0.2 });
-    const disc = new THREE.Mesh(geometry, material);
-    scene.add(disc);
-
-    const light = new THREE.PointLight(0xffffff, 1);
-    light.position.set(2, 2, 2);
-    scene.add(light);
-
-    function animate() {
-      if (audio && !audio.paused) {
-        disc.rotation.y += 0.01;
-      }
-      renderer.render(scene, camera);
-      requestAnimationFrame(animate);
-    }
-    animate();
-
-    const fileInput = document.getElementById("fileInput");
-    const titleEl = document.getElementById("track-title");
-    const playlistEl = document.getElementById("playlist");
-    const visualizer = document.getElementById("visualizer");
-    const vCtx = visualizer.getContext("2d");
-
-    let playlist = [], current = 0;
-    let audioCtx, source, analyser, bufferLength, dataArray;
-    let initialized = false;
-
-    function initAudioContext() {
-      if (initialized) return;
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      source = audioCtx.createMediaElementSource(audio);
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 64;
-      bufferLength = analyser.frequencyBinCount;
-      dataArray = new Uint8Array(bufferLength);
-      source.connect(analyser);
-      analyser.connect(audioCtx.destination);
-      initialized = true;
-    }
-
-    function drawViz() {
-      requestAnimationFrame(drawViz);
-      if (!initialized) return;
-      analyser.getByteFrequencyData(dataArray);
-      vCtx.clearRect(0, 0, visualizer.width, visualizer.height);
-      const barWidth = visualizer.width / bufferLength;
-      for (let i = 0; i < bufferLength; i++) {
-        const barHeight = dataArray[i] / 2;
-        vCtx.fillStyle = `rgb(${barHeight + 100}, 0, ${255 - barHeight})`;
-        vCtx.fillRect(i * barWidth, visualizer.height - barHeight, barWidth - 2, barHeight);
-      }
-    }
-    drawViz();
-
-    fileInput.addEventListener('change', () => {
-      playlist = Array.from(fileInput.files)
-        .filter(f => f.type.includes('audio'))
-        .sort((a, b) => a.name.localeCompare(b.name));
-      if (playlist.length > 0) {
-        current = 0;
-        load(current);
-        renderPlaylist();
-      } else {
-        titleEl.textContent = 'No valid audio files found.';
-        playlistEl.innerHTML = '';
-      }
-    });
-
-    function load(i) {
-      const file = playlist[i];
-      if (!file) return;
-      audio.src = URL.createObjectURL(file);
-      titleEl.textContent = file.name;
-      updateTexture(file);
-      renderPlaylist();
-    }
-
-    function nextTrack() {
-      if (!playlist.length) return;
-      current = (current + 1) % playlist.length;
-      load(current);
-      audio.play();
-    }
-
-    function prevTrack() {
-      if (!playlist.length) return;
-      current = (current - 1 + playlist.length) % playlist.length;
-      load(current);
-      audio.play();
-    }
-
-    window.togglePlay = function () {
-      if (!audio.src) return;
-      initAudioContext();
-      audioCtx.resume();
-      if (audio.paused) audio.play();
-      else audio.pause();
-    };
-
-    window.nextTrack = nextTrack;
-    window.prevTrack = prevTrack;
-
-    function updateTexture(file) {
-      window.jsmediatags.read(file, {
-        onSuccess: function (tag) {
-          const pic = tag.tags.picture;
-          if (pic) {
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(pic.data)));
-            const src = `data:${pic.format};base64,${base64}`;
-            new THREE.TextureLoader().load(src, (texture) => {
-              material.map = texture;
-              material.needsUpdate = true;
-            });
-          }
-        }
-      });
-    }
-
-    function renderPlaylist() {
-      playlistEl.innerHTML = '';
-      playlist.forEach((file, i) => {
-        const div = document.createElement('div');
-        div.textContent = file.name;
-        if (i === current) div.classList.add('active');
-        div.onclick = () => {
-          current = i;
-          load(i);
-          audio.play();
-        };
-        playlistEl.appendChild(div);
-      });
-    }
-
-    audio.addEventListener('ended', nextTrack);
-  </script>
 </body>
 </html>

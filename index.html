@@ -12,17 +12,11 @@
       src: url('fonts/Roboto-SemiBold.ttf') format('truetype');
     }
 
-    :root {
-      --bg: #f5f5f5;
-      --text: #000;
-      --accent: #000;
-    }
-
     body {
       margin: 0;
-      background: var(--bg);
-      color: var(--text);
+      background: #f5f5f5;
       font-family: 'HydraFont', sans-serif;
+      color: #000;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -39,26 +33,23 @@
 
     h1 {
       font-size: 3rem;
-      margin-bottom: 2rem;
       font-weight: bold;
       text-transform: uppercase;
     }
 
     #upload-label {
-      background: transparent;
-      border: 2px solid var(--accent);
-      color: var(--accent);
+      border: 2px solid #000;
+      color: #000;
       padding: 1rem 2rem;
       font-size: 1.2rem;
-      font-weight: bold;
       border-radius: 100px;
       cursor: pointer;
       transition: all 0.3s ease;
     }
 
     #upload-label:hover {
-      background: var(--accent);
-      color: var(--bg);
+      background: #000;
+      color: #f5f5f5;
     }
 
     input[type="file"] {
@@ -80,13 +71,13 @@
     #controls button {
       background: #fff;
       color: #000;
-      font-family: 'HydraFont', sans-serif;
       border: 2px solid #000;
       padding: 0.75rem 1.2rem;
       font-size: 1.1rem;
       border-radius: 50px;
       cursor: pointer;
       transition: all 0.3s ease;
+      font-family: 'HydraFont', sans-serif;
     }
 
     #controls button:hover {
@@ -117,11 +108,11 @@
     <div id="track-info"></div>
     <audio id="audio" style="display: none;"></audio>
     <div id="controls" style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-      <button id="prev">&#x23EE; Previous</button>
-      <button id="rewind">&#x23EA; Rewind</button>
-      <button id="play">&#x25B6; Play</button>
-      <button id="forward">Forward &#x23E9;</button>
-      <button id="next">Next &#x23ED;</button>
+      <button id="prev">&#x23EE;</button>
+      <button id="rewind">&#x23EA;</button>
+      <button id="play">&#x25B6;</button>
+      <button id="forward">&#x23E9;</button>
+      <button id="next">&#x23ED;</button>
     </div>
   </div>
 
@@ -129,21 +120,29 @@
     import * as THREE from 'https://esm.sh/three@0.152.2';
 
     const canvas = document.getElementById('discCanvas');
+    const audio = document.getElementById('audio');
+    const trackInfo = document.getElementById('track-info');
+
     const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
     renderer.setSize(300, 300);
+
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 1000);
     camera.position.z = 2;
 
     const geometry = new THREE.CircleGeometry(1, 64);
-    const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const material = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide });
     const disc = new THREE.Mesh(geometry, material);
-    disc.rotation.x = -Math.PI / 2;
+    disc.rotation.x = Math.PI;
     scene.add(disc);
 
     const light = new THREE.PointLight(0xffffff, 1);
     light.position.set(2, 2, 2);
     scene.add(light);
+
+    let playlist = [], current = 0, initialized = false;
+    let audioCtx, source, analyser;
+    let yandhiVideo = null;
 
     function animate() {
       requestAnimationFrame(animate);
@@ -155,15 +154,8 @@
 
     animate();
 
-    const fileInput = document.getElementById('fileInput');
-    const audio = document.getElementById('audio');
-    const trackInfo = document.getElementById('track-info');
-
-    let audioCtx, source, analyser, initialized = false;
-    let playlist = [], current = 0;
-
-    fileInput.addEventListener('change', async () => {
-      const files = Array.from(fileInput.files).filter(f => f.type.startsWith('audio/'));
+    document.getElementById('fileInput').addEventListener('change', async (event) => {
+      const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
       playlist = [];
 
       for (let file of files) {
@@ -177,6 +169,7 @@
                 name: file.name,
                 artist: tag.tags.artist || '',
                 title: tag.tags.title || '',
+                album: tag.tags.album || '',
                 picture: tag.tags.picture || null
               });
               resolve();
@@ -191,15 +184,17 @@
 
       playlist.sort((a, b) => a.trackNum - b.trackNum || a.name.localeCompare(b.name));
       current = 0;
-      if (playlist.length > 0) loadTrack(current);
+      loadTrack(current);
     });
 
     function loadTrack(index) {
       const entry = playlist[index];
       if (!entry) return;
+
       const file = entry.file;
-      const artist = entry.artist || 'Unknown Artist';
+      const artist = entry.artist || "Unknown Artist";
       const title = entry.title || file.name;
+      const album = entry.album || '';
 
       trackInfo.textContent = `${artist} - ${title}`;
       const url = URL.createObjectURL(file);
@@ -208,21 +203,40 @@
       audio.play().catch(() => {});
       resumeAudio();
 
-      if (entry.picture) {
-        const { data, format } = entry.picture;
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(data)));
-        const imgURL = `data:${format};base64,${base64}`;
-        new THREE.TextureLoader().load(imgURL, tex => {
-          material.map = tex;
+      if (album.toLowerCase().includes("yandhi")) {
+        if (!yandhiVideo) {
+          yandhiVideo = document.createElement('video');
+          yandhiVideo.src = 'images/yandhi.webm';
+          yandhiVideo.loop = true;
+          yandhiVideo.muted = true;
+          yandhiVideo.play();
+          const videoTexture = new THREE.VideoTexture(yandhiVideo);
+          material.map = videoTexture;
           material.needsUpdate = true;
-        });
+        } else {
+          yandhiVideo.play();
+        }
       } else {
-        const query = encodeURIComponent(`${artist} ${title} album cover`);
-        const fallback = `https://source.bing.com/images/search?q=${query}&FORM=HDRSC2&first=1`;
-        new THREE.TextureLoader().load(fallback, tex => {
-          material.map = tex;
-          material.needsUpdate = true;
-        });
+        if (yandhiVideo) {
+          yandhiVideo.pause();
+          yandhiVideo = null;
+        }
+        if (entry.picture) {
+          const { data, format } = entry.picture;
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(data)));
+          const imgURL = `data:${format};base64,${base64}`;
+          new THREE.TextureLoader().load(imgURL, tex => {
+            material.map = tex;
+            material.needsUpdate = true;
+          });
+        } else {
+          const query = encodeURIComponent(`${artist} ${title} album cover`);
+          const fallback = `https://source.bing.com/images/search?q=${query}&FORM=HDRSC2&first=1`;
+          new THREE.TextureLoader().load(fallback, tex => {
+            material.map = tex;
+            material.needsUpdate = true;
+          });
+        }
       }
     }
 
@@ -273,6 +287,7 @@
       loadTrack(current);
     });
 
+    // Visualiser
     const visualCanvas = document.createElement('canvas');
     visualCanvas.width = 600;
     visualCanvas.height = 60;

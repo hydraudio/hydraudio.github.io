@@ -1,83 +1,126 @@
-<input type="file" id="fileInput" multiple />
-<img id="albumArt" style="width: 150px; height: 150px;" />
-<div id="trackInfo"></div>
-<button id="playPauseBtn">Play/Pause</button>
-<input type="range" id="volumeControl" min="0" max="100" value="100" />
+// Initialize necessary variables
+let playlist = [];
+let currentTrack = 0;
+let audioPlayer = null;
+let loading = false;
 
-<script type="module">
-  import * as id3 from 'https://unpkg.com/id3js@^2/lib/id3.js';
-  import { Howl } from 'https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js';
-
-  const fileInput = document.getElementById('fileInput');
-  const albumArtElement = document.getElementById('albumArt');
-  const trackInfo = document.getElementById('trackInfo');
-  const playPauseBtn = document.getElementById('playPauseBtn');
-  const volumeControl = document.getElementById('volumeControl');
-
-  let audioPlayer = null;
-  let currentTrack = 0;
-  let playlist = [];
-
-  fileInput.addEventListener('change', async (event) => {
+// File input event listener
+document.getElementById('fileInput').addEventListener('change', (event) => {
     const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
-    playlist = await Promise.all(files.map(file => {
-      return new Promise((resolve) => {
-        id3.fromFile(file).then(tags => {
-          const trackNum = parseInt(tags.track || '0');
-          resolve({ file, trackNum, tags });
+    playlist = [];
+
+    files.forEach((file) => {
+        window.jsmediatags.read(file, {
+            onSuccess: (tag) => {
+                const trackNum = parseInt((tag.tags.track || '').toString().split('/')[0]) || 0;
+                playlist.push({
+                    file,
+                    trackNum,
+                    artist: tag.tags.artist || 'Unknown Artist',
+                    title: tag.tags.title || 'Unknown Title',
+                    album: tag.tags.album || 'Unknown Album',
+                    picture: tag.tags.picture || null
+                });
+            },
+            onError: () => {
+                playlist.push({ file, trackNum: 0, artist: 'Unknown Artist', title: file.name });
+            }
         });
-      });
-    }));
+    });
 
-    playlist.sort((a, b) => a.trackNum - b.trackNum);
-
+    // Sort playlist by track number or filename if track number is missing
+    playlist.sort((a, b) => a.trackNum - b.trackNum || a.file.name.localeCompare(b.file.name));
     loadTrack(currentTrack);
-  });
+});
 
-  function loadTrack(index) {
-    if (!playlist[index]) return;
+// Function to load track
+function loadTrack(index) {
+    if (loading || !playlist[index]) return;
+    loading = true;
 
-    const { file, tags } = playlist[index];
+    const { file, artist, title, album, picture } = playlist[index];
+
+    // Display track info
+    document.getElementById('track-info').textContent = `${artist} - ${title}`;
+
+    // Show album art if available in ID3 tags
+    if (picture) {
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(picture.data)));
+        const imgURL = `data:${picture.format};base64,${base64}`;
+        document.getElementById('albumArt').src = imgURL;
+        document.getElementById('albumArt').style.display = 'block';
+    } else {
+        document.getElementById('albumArt').style.display = 'none';
+    }
+
+    // Create a URL for the audio file and load it into the player
     const url = URL.createObjectURL(file);
 
-    trackInfo.textContent = `${tags.artist || 'Unknown Artist'} - ${tags.title || 'Unknown Title'}`;
-
-    if (tags.images && tags.images.length > 0) {
-      const imageData = tags.images[0].data;
-      const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageData)));
-      albumArtElement.src = `data:${tags.images[0].mime};base64,${base64Image}`;
-      albumArtElement.style.display = 'block';
-    } else {
-      albumArtElement.style.display = 'none';
-    }
-
+    // If there's a previous player, unload it
     if (audioPlayer) {
-      audioPlayer.unload();
+        audioPlayer.unload();
     }
 
+    // Initialize new audio player with Howler.js
     audioPlayer = new Howl({
-      src: [url],
-      html5: true,
-      onend: () => {
-        currentTrack = (currentTrack + 1) % playlist.length;
-        loadTrack(currentTrack);
-      }
+        src: [url],
+        html5: true,
+        onend: () => {
+            currentTrack = (currentTrack + 1) % playlist.length;
+            loadTrack(currentTrack);
+        }
     });
 
     audioPlayer.play();
-  }
+    loading = false;
+}
 
-  playPauseBtn.addEventListener('click', () => {
-    if (audioPlayer.playing()) {
-      audioPlayer.pause();
-    } else {
-      audioPlayer.play();
-    }
-  });
-
-  volumeControl.addEventListener('input', () => {
+// Play/Pause button functionality
+document.getElementById('play').addEventListener('click', () => {
     if (audioPlayer) {
-      audioPlayer.volume(volumeControl.value / 100);
+        if (audioPlayer.playing()) {
+            audioPlayer.pause();
+        } else {
+            audioPlayer.play();
+        }
     }
-  });
-</script>
+});
+
+// Next button functionality
+document.getElementById('next').addEventListener('click', () => {
+    if (playlist.length > 0) {
+        currentTrack = (currentTrack + 1) % playlist.length;
+        loadTrack(currentTrack);
+    }
+});
+
+// Previous button functionality
+document.getElementById('prev').addEventListener('click', () => {
+    if (playlist.length > 0) {
+        currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
+        loadTrack(currentTrack);
+    }
+});
+
+// Rewind button functionality
+document.getElementById('rewind').addEventListener('click', () => {
+    if (audioPlayer) {
+        let currentTime = audioPlayer.seek();
+        audioPlayer.seek(Math.max(currentTime - 10, 0));
+    }
+});
+
+// Forward button functionality
+document.getElementById('forward').addEventListener('click', () => {
+    if (audioPlayer) {
+        let currentTime = audioPlayer.seek();
+        audioPlayer.seek(Math.min(currentTime + 10, audioPlayer.duration()));
+    }
+});
+
+// Volume control functionality
+document.getElementById('volumeControl').addEventListener('input', () => {
+    if (audioPlayer) {
+        audioPlayer.volume(document.getElementById('volumeControl').value / 100);
+    }
+});

@@ -27,13 +27,26 @@
     }
 
     input[type="file"] {
-      background: #00000033;
-      color: #fff;
-      border: 2px dashed #555;
-      border-radius: 10px;
-      padding: 1rem;
+      display: none;
+    }
+
+    .custom-upload {
+      display: inline-block;
+      background: linear-gradient(90deg, #00f2ff, #7700ff);
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      color: #000;
+      font-weight: bold;
+      font-size: 1rem;
       cursor: pointer;
+      box-shadow: 0 0 20px #00f2ff90;
+      transition: all 0.3s ease;
       margin-bottom: 2rem;
+    }
+
+    .custom-upload:hover {
+      background: linear-gradient(90deg, #00d5ff, #a000ff);
+      box-shadow: 0 0 30px #00f2ff;
     }
 
     #disc-container {
@@ -140,6 +153,7 @@
 </head>
 <body>
   <h1>🎧 Hydraudio</h1>
+  <label for="folderInput" class="custom-upload">🎶 Load Album Folder</label>
   <input type="file" id="folderInput" webkitdirectory multiple />
   <div id="disc-container"><div id="disc"></div></div>
   <div id="track-title">No track loaded</div>
@@ -187,19 +201,23 @@
       updateDiscArt(file);
 
       disc.classList.add('playing');
+      disc.style.transform = 'rotateY(0deg)';
     }
 
     function updateDiscArt(file) {
       jsmediatags.read(file, {
         onSuccess: function(tag) {
-          const pics = tag.tags.picture;
-          if (pics) {
-            const base64String = btoa(String.fromCharCode(...new Uint8Array(pics.data)));
-            const mime = pics.format;
-            const url = `data:${mime};base64,${base64String}`;
+          const pic = tag.tags.picture;
+          if (pic) {
+            const base64 = btoa(String.fromCharCode(...new Uint8Array(pic.data)));
+            const mime = pic.format;
+            const url = `data:${mime};base64,${base64}`;
             disc.style.setProperty('--front-cover', `url(${url})`);
             disc.style.setProperty('--back-cover', `url(${url})`);
+            disc.style.backgroundImage = `url(${url})`;
             disc.style.setProperty('--has-cover', 'yes');
+            disc.style.backgroundSize = 'cover';
+            disc.style.backgroundPosition = 'center';
             disc.querySelector('::before').style.backgroundImage = `url(${url})`;
           }
         },

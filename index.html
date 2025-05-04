@@ -184,7 +184,7 @@
 
       playlist.sort((a, b) => a.trackNum - b.trackNum || a.name.localeCompare(b.name));
       current = 0;
-      if (playlist.length > 0) loadTrack(current);
+      if (playlist.length > 0) setTimeout(() => loadTrack(current), 0);
     });
 
 function loadTrack(index) {

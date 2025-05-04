@@ -166,11 +166,12 @@
 
     animate();
 
-    const fileInput = document.getElementById('fileInput');
-    fileInput.addEventListener('change', async () => {
-      const files = Array.from(fileInput.files).filter(f => f.type.startsWith('audio/'));
-      const tagged = await Promise.all(
-        files.map(file => new Promise(resolve => {
+    document.getElementById('fileInput').addEventListener('change', async () => {
+      const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
+      playlist = [];
+
+      for (let file of files) {
+        await new Promise(resolve => {
           window.jsmediatags.read(file, {
             onSuccess: tag => {
               let trackNum = 0;
@@ -179,16 +180,34 @@
                 const match = raw.toString().match(/^(\d+)/);
                 if (match) trackNum = parseInt(match[1]);
               }
-              resolve({ file, trackNum, name: file.name, artist: tag.tags.artist, title: tag.tags.title });
+
+              playlist.push({
+                file,
+                trackNum,
+                name: file.name,
+                artist: tag.tags.artist || '',
+                title: tag.tags.title || '',
+                picture: tag.tags.picture || null
+              });
+
+              resolve();
             },
             onError: () => {
-              resolve({ file, trackNum: 0, name: file.name, artist: '', title: '' });
+              playlist.push({
+                file,
+                trackNum: 0,
+                name: file.name,
+                artist: '',
+                title: '',
+                picture: null
+              });
+              resolve();
             }
           });
-        }))
-      );
+        });
+      }
 
-      playlist = tagged.sort((a, b) => {
+      playlist.sort((a, b) => {
         if (a.trackNum && b.trackNum) return a.trackNum - b.trackNum;
         return a.name.localeCompare(b.name);
       });
@@ -198,12 +217,12 @@
     });
 
     function loadTrack(index) {
-      const entry = playlist[index];
-      const file = entry?.file;
-      if (!file) return;
+      const track = playlist[index];
+      if (!track) return;
 
-      const artist = entry.artist || "Unknown Artist";
-      const title = entry.title || file.name;
+      const file = track.file;
+      const artist = track.artist || "Unknown Artist";
+      const title = track.title || file.name;
       trackInfo.textContent = `${artist} - ${title}`;
 
       const objectURL = URL.createObjectURL(file);
@@ -212,33 +231,24 @@
       audio.play().catch(err => console.warn('Autoplay blocked:', err));
       resumeContext();
 
-      // Try embedded cover first
-      window.jsmediatags.read(file, {
-        onSuccess: tag => {
-          const pic = tag.tags.picture;
-          if (pic) {
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(pic.data)));
-            const mime = pic.format;
-            const src = `data:${mime};base64,${base64}`;
-            new THREE.TextureLoader().load(src, tex => {
-              material.map = tex;
-              material.needsUpdate = true;
-            });
-          } else {
-            fetchFallbackCover(artist, title);
-          }
-        },
-        onError: () => {
-          fetchFallbackCover(artist, title);
-        }
-      });
+      if (track.picture) {
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(track.picture.data)));
+        const mime = track.picture.format;
+        const src = `data:${mime};base64,${base64}`;
+        new THREE.TextureLoader().load(src, tex => {
+          material.map = tex;
+          material.needsUpdate = true;
+        });
+      } else {
+        fetchFallbackCover(artist, title);
+      }
     }
 
     function fetchFallbackCover(artist, title) {
       const query = encodeURIComponent(`${artist} ${title} album cover`);
-      const imgUrl = `https://source.bing.com/images/search?q=${query}&FORM=HDRSC2&first=1`;
+      const fallbackURL = `https://source.bing.com/images/search?q=${query}&FORM=HDRSC2&first=1`;
 
-      new THREE.TextureLoader().load(imgUrl, tex => {
+      new THREE.TextureLoader().load(fallbackURL, tex => {
         material.map = tex;
         material.needsUpdate = true;
       });
@@ -291,6 +301,7 @@
       loadTrack(current);
     });
 
+    // Visualiser
     const visualCanvas = document.createElement('canvas');
     visualCanvas.width = 600;
     visualCanvas.height = 60;

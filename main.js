@@ -1,111 +1,105 @@
-// ✅ DOM references
+console.log("✅ DOM fully loaded");
+
+let playlist = [];
+let currentIndex = 0;
+let audioPlayer = null;
+
 const fileInput = document.getElementById('fileInput');
-const albumArt = document.getElementById('albumArt');
 const trackInfo = document.getElementById('trackInfo');
+const albumArt = document.getElementById('albumArt');
 const playPauseBtn = document.getElementById('playPauseBtn');
 const volumeControl = document.getElementById('volumeControl');
 
-// ✅ Audio state
-let playlist = [];
-let currentTrack = 0;
-let audioPlayer = null;
-
-// ✅ Handle file selection
-fileInput.addEventListener('change', (event) => {
-  console.log('📁 File selected');
+fileInput.addEventListener('change', async (event) => {
+  console.log("📁 File selected");
   const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
-  playlist = [];
-  let processed = 0;
 
-  files.forEach(file => {
-    jsmediatags.read(file, {
-      onSuccess: (tag) => {
-        const trackNum = parseInt((tag.tags.track || '').toString().split('/')[0]) || 0;
-        playlist.push({
-          file,
-          trackNum,
-          artist: tag.tags.artist || 'Unknown Artist',
-          title: tag.tags.title || file.name,
-          album: tag.tags.album || '',
-          picture: tag.tags.picture || null
-        });
-        processed++;
-        if (processed === files.length) {
-          finalizePlaylist();
+  playlist = await Promise.all(files.map(file => {
+    return new Promise(resolve => {
+      window.jsmediatags.read(file, {
+        onSuccess: tag => {
+          const trackNum = parseInt((tag.tags.track || '').toString().split('/')[0]) || 0;
+          resolve({
+            file,
+            url: URL.createObjectURL(file),
+            title: tag.tags.title || file.name,
+            artist: tag.tags.artist || "Unknown Artist",
+            album: tag.tags.album || "Unknown Album",
+            picture: tag.tags.picture || null,
+            trackNum
+          });
+        },
+        onError: () => {
+          resolve({
+            file,
+            url: URL.createObjectURL(file),
+            title: file.name,
+            artist: "Unknown Artist",
+            album: "Unknown Album",
+            picture: null,
+            trackNum: 0
+          });
         }
-      },
-      onError: () => {
-        playlist.push({
-          file,
-          trackNum: 0,
-          artist: 'Unknown Artist',
-          title: file.name,
-          album: '',
-          picture: null
-        });
-        processed++;
-        if (processed === files.length) {
-          finalizePlaylist();
-        }
-      }
+      });
     });
-  });
+  }));
+
+  // Sort playlist
+  playlist.sort((a, b) => a.trackNum - b.trackNum || a.title.localeCompare(b.title));
+  console.log("🎶 Sorted playlist:", playlist.map(p => p.title));
+  playTrack(0);
 });
 
-function finalizePlaylist() {
-  playlist.sort((a, b) => a.trackNum - b.trackNum || a.file.name.localeCompare(b.file.name));
-  console.log('✅ Playlist ready:', playlist.map(p => p.title));
-  loadTrack(currentTrack);
-}
+function playTrack(index) {
+  if (!playlist[index]) return;
+  currentIndex = index;
 
-function loadTrack(index) {
-  const entry = playlist[index];
-  if (!entry) return;
+  const track = playlist[index];
+  console.log("🎵 Loading track:", track.title);
 
-  console.log(`🎵 Loading track: ${entry.title} by ${entry.artist}`);
-
-  // Cleanup
+  // Cleanup old player
   if (audioPlayer) {
     audioPlayer.unload();
   }
 
-  const url = URL.createObjectURL(entry.file);
-  trackInfo.textContent = `${entry.artist} - ${entry.title}`;
+  // Create Howler audio
+  audioPlayer = new Howl({
+    src: [track.url],
+    html5: true,
+    onend: () => {
+      let nextIndex = (currentIndex + 1) % playlist.length;
+      playTrack(nextIndex);
+    }
+  });
 
-  // Album art
-  if (entry.picture) {
-    const { data, format } = entry.picture;
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(data)));
-    albumArt.src = `data:${format};base64,${base64}`;
+  // Display track info
+  trackInfo.textContent = `${track.artist} - ${track.title}`;
+
+  // Display album art
+  if (track.picture) {
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(track.picture.data)));
+    albumArt.src = `data:${track.picture.format};base64,${base64}`;
     albumArt.style.display = 'block';
   } else {
     albumArt.style.display = 'none';
   }
 
-  // Init Howler
-  audioPlayer = new Howl({
-    src: [url],
-    html5: true,
-    volume: volumeControl.value / 100,
-    onend: () => {
-      currentTrack = (currentTrack + 1) % playlist.length;
-      loadTrack(currentTrack);
-    }
-  });
-
+  // Play it
   audioPlayer.play();
 }
 
-// ✅ Playback controls
+// Play/Pause control
 playPauseBtn.addEventListener('click', () => {
-  if (!audioPlayer) return;
-  if (audioPlayer.playing()) {
-    audioPlayer.pause();
-  } else {
-    audioPlayer.play();
+  if (audioPlayer) {
+    if (audioPlayer.playing()) {
+      audioPlayer.pause();
+    } else {
+      audioPlayer.play();
+    }
   }
 });
 
+// Volume control
 volumeControl.addEventListener('input', () => {
   if (audioPlayer) {
     audioPlayer.volume(volumeControl.value / 100);

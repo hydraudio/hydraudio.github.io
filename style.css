@@ -1,66 +1,106 @@
+@font-face {
+  font-family: 'HydraFont';
+  src: url('fonts/Roboto-SemiBold.ttf') format('truetype');
+}
 
-body {
-  background: #ffffff;
-  font-family: sans-serif;
-  text-align: center;
-  text-transform: uppercase;
+* {
+  box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+body {
+  background-color: #fff;
   color: #000;
+  font-family: 'HydraFont', sans-serif;
+  text-transform: uppercase;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  overflow: hidden;
 }
 
-h1 {
-  margin-top: 2rem;
-  font-size: 3rem;
-  transition: transform 0.6s ease;
+#container {
+  text-align: center;
+  position: relative;
+  transition: all 0.6s ease;
 }
 
-#title.up {
-  transform: translateY(-80px);
+#title {
+  font-size: 4rem;
+  font-weight: bold;
+  letter-spacing: 0.2rem;
+  transition: transform 1s ease-in-out, opacity 1s ease-in-out;
 }
 
-#fileInput {
-  margin-top: 2rem;
+#container.active #title {
+  transform: translateY(-120px);
+  opacity: 0;
 }
 
-#infoArea {
-  margin-top: 1rem;
-  transition: opacity 0.5s ease;
+#ui {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.6s ease 0.3s, transform 0.6s ease 0.3s;
+  pointer-events: none;
+}
+
+#container.active #ui {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 #albumArt {
-  width: 200px;
-  height: 200px;
+  width: 300px;
+  height: 300px;
   object-fit: cover;
-  margin-top: 1rem;
-  animation: spin 5s linear infinite;
+  margin: 30px auto;
+  animation: spin 6s linear infinite;
+  transform-style: preserve-3d;
+  border-radius: 12px;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.15);
 }
 
 @keyframes spin {
-  100% {
-    transform: rotateY(360deg);
-  }
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+
+#track-info {
+  font-size: 1.2rem;
+  margin-bottom: 20px;
+  font-weight: 600;
 }
 
 #controls {
-  margin-top: 2rem;
-  opacity: 1;
-  transition: opacity 0.5s ease;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 20px;
 }
 
-.hidden {
-  display: none;
-}
-
-button {
-  background: transparent;
+#controls button {
+  background: #fff;
   border: 2px solid #000;
-  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  padding: 0.75rem 1.2rem;
   font-size: 1rem;
+  font-weight: bold;
   cursor: pointer;
-  margin: 0 0.5rem;
+  transition: all 0.3s ease;
+  font-family: 'HydraFont', sans-serif;
 }
 
-input[type="range"] {
-  vertical-align: middle;
+#controls button:hover {
+  background: #000;
+  color: #fff;
+}
+
+#volumeControl {
+  width: 200px;
+  margin: auto;
+  display: block;
+  accent-color: #000;
 }

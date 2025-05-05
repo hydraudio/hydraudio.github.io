@@ -1,112 +1,117 @@
+document.addEventListener('DOMContentLoaded', () => {
+  console.log("✅ DOM fully loaded");
 
-// ✅ DOM fully loaded
-console.log("✅ DOM fully loaded");
+  const fileInput = document.getElementById('fileInput');
+  const title = document.getElementById('title');
+  const albumArt = document.getElementById('albumArt');
+  const trackInfo = document.getElementById('track-info');
+  const playPauseBtn = document.getElementById('playPauseBtn');
+  const volumeSlider = document.getElementById('volumeControl');
+  const ui = document.getElementById('ui');
 
-const fileInput = document.getElementById('fileInput');
-const albumArt = document.getElementById('albumArt');
-const trackInfo = document.getElementById('trackInfo');
-const playBtn = document.getElementById('playPauseBtn');
-const volumeControl = document.getElementById('volumeControl');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  const rewindBtn = document.getElementById('rewind');
+  const forwardBtn = document.getElementById('forward');
 
-let playlist = [];
-let currentTrack = 0;
-let audioPlayer = null;
+  let playlist = [];
+  let currentTrack = 0;
+  let audio = null;
 
-// 📁 File input event
-fileInput.addEventListener('change', async (event) => {
-  console.log("📁 File selected");
-  const files = Array.from(event.target.files).filter(file => file.type.startsWith('audio/'));
-  playlist = [];
-
-  for (let file of files) {
-    await new Promise((resolve) => {
-      jsmediatags.read(file, {
-        onSuccess: (tag) => {
-          const tags = tag.tags;
-          const trackNum = parseInt((tags.track || '').toString().split('/')[0]) || 0;
-          playlist.push({
+  fileInput.addEventListener('change', async (event) => {
+    console.log("📁 File selected");
+    const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
+    const promises = files.map(file => new Promise((resolve) => {
+      window.jsmediatags.read(file, {
+        onSuccess: ({ tags }) => {
+          const track = {
             file,
             title: tags.title || file.name,
-            artist: tags.artist || 'Unknown Artist',
-            album: tags.album || 'Unknown Album',
+            artist: tags.artist || 'UNKNOWN',
+            album: tags.album || '',
             picture: tags.picture || null,
-            trackNum
-          });
-          resolve();
+            trackNum: parseInt((tags.track || '0').split('/')[0]) || 0
+          };
+          resolve(track);
         },
         onError: () => {
-          playlist.push({
-            file,
-            title: file.name,
-            artist: 'Unknown Artist',
-            album: 'Unknown Album',
-            picture: null,
-            trackNum: 0
-          });
-          resolve();
+          resolve({ file, title: file.name, artist: 'UNKNOWN', album: '', picture: null, trackNum: 0 });
         }
       });
+    }));
+
+    playlist = await Promise.all(promises);
+    playlist.sort((a, b) => a.trackNum - b.trackNum || a.file.name.localeCompare(b.file.name));
+    console.log("🎶 Playlist ready: ", playlist.map(p => p.title));
+    currentTrack = 0;
+    loadTrack(currentTrack);
+  });
+
+  function loadTrack(index) {
+    if (!playlist[index]) return;
+
+    const { file, artist, title: songTitle, picture } = playlist[index];
+    console.log(`🎵 Loading track: ${songTitle}`);
+
+    trackInfo.textContent = `${artist.toUpperCase()} - ${songTitle.toUpperCase()}`;
+
+    if (picture) {
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(picture.data)));
+      albumArt.src = `data:${picture.format};base64,${base64}`;
+    } else {
+      albumArt.src = '';
+    }
+
+    const objectURL = URL.createObjectURL(file);
+    if (audio) audio.unload();
+
+    audio = new Howl({
+      src: [objectURL],
+      html5: true,
+      onplay: () => {
+        document.getElementById('container').classList.add('active');
+      },
+      onend: () => {
+        currentTrack = (currentTrack + 1) % playlist.length;
+        loadTrack(currentTrack);
+        audio.play();
+      }
     });
+
+    audio.play();
   }
 
-  playlist.sort((a, b) => a.trackNum - b.trackNum || a.file.name.localeCompare(b.file.name));
-  console.log("🎶 Playlist ready:", playlist.map(t => t.title));
-  currentTrack = 0;
-  loadTrack(currentTrack);
-});
-
-function loadTrack(index) {
-  if (!playlist[index]) return;
-
-  const { file, title, artist, picture } = playlist[index];
-  console.log("🎵 Loading track:", title);
-
-  // Update track info
-  if (trackInfo) {
-    trackInfo.textContent = `${artist} - ${title}`;
-  }
-
-  // Update album art
-  if (albumArt && picture) {
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(picture.data)));
-    albumArt.src = `data:${picture.format};base64,${base64}`;
-    albumArt.style.display = 'block';
-  } else if (albumArt) {
-    albumArt.style.display = 'none';
-  }
-
-  // Unload previous Howl
-  if (audioPlayer) {
-    audioPlayer.unload();
-  }
-
-  const url = URL.createObjectURL(file);
-
-  audioPlayer = new Howl({
-    src: [url],
-    html5: true,
-    onend: () => {
-      currentTrack = (currentTrack + 1) % playlist.length;
-      loadTrack(currentTrack);
+  playPauseBtn.addEventListener('click', () => {
+    if (audio) {
+      if (audio.playing()) {
+        audio.pause();
+      } else {
+        audio.play();
+      }
     }
   });
 
-  audioPlayer.play();
-}
+  volumeSlider.addEventListener('input', () => {
+    if (audio) {
+      audio.volume(volumeSlider.value / 100);
+    }
+  });
 
-// ▶ Play/Pause
-playBtn?.addEventListener('click', () => {
-  if (!audioPlayer) return;
-  if (audioPlayer.playing()) {
-    audioPlayer.pause();
-  } else {
-    audioPlayer.play();
-  }
-});
+  prevBtn.addEventListener('click', () => {
+    currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
+    loadTrack(currentTrack);
+  });
 
-// 🔊 Volume
-volumeControl?.addEventListener('input', () => {
-  if (audioPlayer) {
-    audioPlayer.volume(volumeControl.value / 100);
-  }
+  nextBtn.addEventListener('click', () => {
+    currentTrack = (currentTrack + 1) % playlist.length;
+    loadTrack(currentTrack);
+  });
+
+  rewindBtn.addEventListener('click', () => {
+    if (audio) audio.seek(Math.max(audio.seek() - 10, 0));
+  });
+
+  forwardBtn.addEventListener('click', () => {
+    if (audio) audio.seek(Math.min(audio.seek() + 10, audio.duration()));
+  });
 });

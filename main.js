@@ -71,9 +71,11 @@ document.addEventListener('DOMContentLoaded', () => {
       onplay: () => {
         document.getElementById('container').classList.add('active');
       },
-      onend: () => {
-        currentTrack = (currentTrack + 1) % playlist.length;
-        loadTrack(currentTrack);
+onend: () => {
+    currentTrack = (currentTrack + 1) % playlist.length;
+    setTimeout(() => loadTrack(currentTrack), 200); // Delay to prevent call stack overflow
+}
+
         audio.play();
       }
     });

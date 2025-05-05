@@ -1,4 +1,4 @@
-// ✅ DOM fully loaded
+
 document.addEventListener('DOMContentLoaded', () => {
   console.log('✅ DOM fully loaded');
 
@@ -22,52 +22,54 @@ document.addEventListener('DOMContentLoaded', () => {
       await new Promise((resolve) => {
         window.jsmediatags.read(file, {
           onSuccess: (tag) => {
-            const trackNum = parseInt((tag.tags.track || '').split('/')[0]) || 0;
+            const trackNum = parseInt((tag.tags.track || '0').toString().split('/')[0]) || 0;
             playlist.push({
               file,
               trackNum,
+              artist: tag.tags.artist || 'UNKNOWN ARTIST',
               title: tag.tags.title || file.name,
-              artist: tag.tags.artist || 'UNKNOWN',
               picture: tag.tags.picture || null
             });
             resolve();
           },
           onError: () => {
-            playlist.push({ file, trackNum: 0, title: file.name, artist: 'UNKNOWN', picture: null });
+            playlist.push({
+              file,
+              trackNum: 0,
+              artist: 'UNKNOWN ARTIST',
+              title: file.name,
+              picture: null
+            });
             resolve();
           }
         });
       });
     }
 
-    // Sort by track number, fallback to filename
     playlist.sort((a, b) => a.trackNum - b.trackNum || a.title.localeCompare(b.title));
-    console.log('🎶 Playlist ready:', playlist.map(p => `"${p.title}"`));
+    console.log('🎶 Playlist ready: ', playlist.map(p => p.title));
 
     currentTrack = 0;
-    loadTrack(currentTrack);
+    loadTrack(currentTrack); // Always call with one argument
   });
 
   function loadTrack(index) {
     if (!playlist[index]) return;
+
     const { file, artist, title, picture } = playlist[index];
-
     console.log(`🎵 Loading track: ${title}`);
-    if (trackInfo) {
-      trackInfo.textContent = `${artist.toUpperCase()} - ${title.toUpperCase()}`;
-    }
 
-    if (picture && albumArt) {
+    trackInfo.textContent = `${artist.toUpperCase()} - ${title.toUpperCase()}`;
+
+    if (picture) {
       const base64 = btoa(String.fromCharCode(...new Uint8Array(picture.data)));
       albumArt.src = `data:${picture.format};base64,${base64}`;
-      albumArt.style.display = 'block';
-    } else if (albumArt) {
+    } else {
       albumArt.src = '';
-      albumArt.style.display = 'none';
     }
 
     const objectURL = URL.createObjectURL(file);
-    if (audio) audio.unload();
+    if (audio) audio.unload?.();
 
     audio = new Howl({
       src: [objectURL],
@@ -85,12 +87,34 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   playPauseBtn?.addEventListener('click', () => {
+    if (audio?.playing()) {
+      audio.pause();
+    } else {
+      audio?.play();
+    }
+  });
+
+  document.getElementById('prev')?.addEventListener('click', () => {
+    currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
+    loadTrack(currentTrack);
+  });
+
+  document.getElementById('next')?.addEventListener('click', () => {
+    currentTrack = (currentTrack + 1) % playlist.length;
+    loadTrack(currentTrack);
+  });
+
+  document.getElementById('rewind')?.addEventListener('click', () => {
     if (audio) {
-      if (audio.playing()) {
-        audio.pause();
-      } else {
-        audio.play();
-      }
+      const t = audio.seek();
+      audio.seek(Math.max(0, t - 10));
+    }
+  });
+
+  document.getElementById('forward')?.addEventListener('click', () => {
+    if (audio) {
+      const t = audio.seek();
+      audio.seek(Math.min(audio.duration(), t + 10));
     }
   });
 

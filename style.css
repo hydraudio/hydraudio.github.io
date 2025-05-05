@@ -1,90 +1,137 @@
-@font-face {
-  font-family: 'HydraFont';
-  src: url('fonts/Roboto-SemiBold.ttf') format('truetype');
+/* WHITE STEM PLAYER INSPIRED STYLE */
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  background: #f5f5f5;
-  font-family: 'HydraFont', sans-serif;
-  color: #000;
+  padding: 0;
+  background: #ffffff;
+  color: #000000;
+  font-family: sans-serif;
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  transition: all 0.5s ease;
+}
+
+#container {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
+  justify-content: center;
   height: 100vh;
   overflow: hidden;
 }
 
-#container {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
 h1 {
   font-size: 3rem;
-  font-weight: bold;
-  text-transform: uppercase;
+  margin: 0;
+  transition: transform 1s ease;
+  z-index: 1;
 }
 
 #upload-label {
-  border: 2px solid #000;
-  color: #000;
+  margin-top: 2rem;
   padding: 1rem 2rem;
-  font-size: 1.2rem;
-  border-radius: 100px;
+  border: 2px solid #000;
+  background: transparent;
   cursor: pointer;
-  transition: all 0.3s ease;
+  font-size: 1.1rem;
+  border-radius: 50px;
+  transition: background 0.3s, color 0.3s;
 }
 
 #upload-label:hover {
   background: #000;
-  color: #f5f5f5;
+  color: #fff;
 }
 
 input[type="file"] {
   display: none;
 }
 
-#discCanvas {
+#albumArt {
   width: 300px;
   height: 300px;
-  margin-top: 3rem;
+  margin-top: 2rem;
+  object-fit: cover;
+  animation: spin 3s linear infinite;
+  transform-origin: center;
+  display: none;
 }
 
-#track-info {
+@keyframes spin {
+  0%   { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+
+#trackInfo {
   margin-top: 1rem;
-  font-size: 1.2rem;
-  font-weight: bold;
+  font-size: 1rem;
+}
+
+#controls {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 #controls button {
-  background: #fff;
-  color: #000;
-  border: 2px solid #000;
-  padding: 0.75rem 1.2rem;
-  font-size: 1.1rem;
+  background: #ffffff;
+  color: #000000;
+  border: 2px solid #000000;
+  padding: 0.75rem 1.5rem;
   border-radius: 50px;
+  font-size: 1rem;
+  font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-family: 'HydraFont', sans-serif;
 }
 
 #controls button:hover {
+  background: #000000;
+  color: #ffffff;
+}
+
+#volumeControl {
+  margin-top: 1rem;
+  width: 150px;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
   background: #000;
-  color: #fff;
+  border-radius: 5px;
 }
 
-#play {
-  background: #ff0090;
-  color: white;
-  font-weight: bold;
-  font-size: 1.2rem;
-  box-shadow: 0 0 10px #ff0090aa;
-  border: none;
+#volumeControl::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border: 2px solid #000;
+  border-radius: 50%;
+  cursor: pointer;
 }
 
-#play:hover {
-  background: #c60070;
+#volumeControl::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: #fff;
+  border: 2px solid #000;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Animation to move title up and reveal controls */
+.animate-up {
+  transform: translateY(-150px);
+}
+
+.hidden {
+  display: none;
 }

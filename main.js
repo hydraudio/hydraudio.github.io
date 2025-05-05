@@ -12,8 +12,10 @@ const volumeControl = document.getElementById('volumeControl');
 
 fileInput.addEventListener('change', async (event) => {
   console.log("📁 File selected");
+
   const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
 
+  // Build playlist with metadata BEFORE calling loadTrack()
   playlist = await Promise.all(files.map(file => {
     return new Promise(resolve => {
       window.jsmediatags.read(file, {
@@ -23,8 +25,8 @@ fileInput.addEventListener('change', async (event) => {
             file,
             url: URL.createObjectURL(file),
             title: tag.tags.title || file.name,
-            artist: tag.tags.artist || "Unknown Artist",
-            album: tag.tags.album || "Unknown Album",
+            artist: tag.tags.artist || 'Unknown Artist',
+            album: tag.tags.album || 'Unknown Album',
             picture: tag.tags.picture || null,
             trackNum
           });
@@ -34,8 +36,8 @@ fileInput.addEventListener('change', async (event) => {
             file,
             url: URL.createObjectURL(file),
             title: file.name,
-            artist: "Unknown Artist",
-            album: "Unknown Album",
+            artist: 'Unknown Artist',
+            album: 'Unknown Album',
             picture: null,
             trackNum: 0
           });
@@ -44,38 +46,29 @@ fileInput.addEventListener('change', async (event) => {
     });
   }));
 
-  // Sort playlist
+  // Sort playlist by track number or file name
   playlist.sort((a, b) => a.trackNum - b.trackNum || a.title.localeCompare(b.title));
-  console.log("🎶 Sorted playlist:", playlist.map(p => p.title));
-  playTrack(0);
+
+  console.log("🎶 Playlist ready:", playlist.map(t => t.title));
+
+  // Start playing the first track
+  loadTrack(0);
 });
 
-function playTrack(index) {
-  if (!playlist[index]) return;
-  currentIndex = index;
-
+function loadTrack(index) {
   const track = playlist[index];
+  if (!track) return;
+
   console.log("🎵 Loading track:", track.title);
 
-  // Cleanup old player
+  // Clean up previous player
   if (audioPlayer) {
     audioPlayer.unload();
   }
 
-  // Create Howler audio
-  audioPlayer = new Howl({
-    src: [track.url],
-    html5: true,
-    onend: () => {
-      let nextIndex = (currentIndex + 1) % playlist.length;
-      playTrack(nextIndex);
-    }
-  });
-
-  // Display track info
+  // Update UI
   trackInfo.textContent = `${track.artist} - ${track.title}`;
 
-  // Display album art
   if (track.picture) {
     const base64 = btoa(String.fromCharCode(...new Uint8Array(track.picture.data)));
     albumArt.src = `data:${track.picture.format};base64,${base64}`;
@@ -84,11 +77,20 @@ function playTrack(index) {
     albumArt.style.display = 'none';
   }
 
-  // Play it
+  // Create Howler player
+  audioPlayer = new Howl({
+    src: [track.url],
+    html5: true,
+    volume: volumeControl.value / 100,
+    onend: () => {
+      currentIndex = (currentIndex + 1) % playlist.length;
+      loadTrack(currentIndex);
+    }
+  });
+
   audioPlayer.play();
 }
 
-// Play/Pause control
 playPauseBtn.addEventListener('click', () => {
   if (audioPlayer) {
     if (audioPlayer.playing()) {
@@ -99,7 +101,6 @@ playPauseBtn.addEventListener('click', () => {
   }
 });
 
-// Volume control
 volumeControl.addEventListener('input', () => {
   if (audioPlayer) {
     audioPlayer.volume(volumeControl.value / 100);

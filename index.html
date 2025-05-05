@@ -5,32 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <title>Hydraudio</title>
-  <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
-
-  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="container">
-    <h1>Hydraudio</h1>
-    <label id="upload-label" for="fileInput">Enter</label>
-    <input type="file" id="fileInput" multiple webkitdirectory />
-    <canvas id="discCanvas"></canvas>
-    <img id="albumArt" style="width: 150px; height: 150px;" />
-    <div id="track-info"></div>
-    <audio id="audio" style="display: none;"></audio>
-    <div id="controls" style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-      <button id="prev">⏮ Previous</button>
-      <button id="rewind">⏪ Rewind</button>
-      <button id="play">▶ Play</button>
-      <button id="forward">Forward ⏩</button>
-      <button id="next">Next ⏭</button>
-    </div>
-    <div style="margin-top: 1rem;">
-      <label for="volumeControl">Volume: </label>
-      <input type="range" id="volumeControl" min="0" max="100" value="100" />
-    </div>
-  </div>
+  <input type="file" id="fileInput" multiple />
+  <img id="albumArt" style="width: 150px; height: 150px; display: none;" />
+  <div id="trackInfo"></div>
+  <button id="playPauseBtn">Play/Pause</button>
+  <input type="range" id="volumeControl" min="0" max="100" value="100" />
+
   <script type="module" src="main.js"></script>
 </body>
 </html>

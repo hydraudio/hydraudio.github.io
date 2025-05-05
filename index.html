@@ -1,33 +1,29 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <title>HYDRAUDIO</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
 </head>
 <body>
-  <div id="container">
-    <h1 id="title">HYDRAUDIO</h1>
-    <label id="upload-label" for="fileInput">BROWSE</label>
-    <input type="file" id="fileInput" webkitdirectory multiple />
-
+  <h1 id="title">HYDRAUDIO</h1>
+  <input type="file" id="fileInput" multiple />
+  <div id="infoArea">
     <img id="albumArt" />
-    <div id="trackInfo"></div>
-
-    <div id="controls" class="hidden">
-      <button id="prev">&#9198;</button>
-      <button id="rewind">&#9194;</button>
-      <button id="playPause">▶ PLAY/PAUSE</button>
-      <button id="forward">&#9193;</button>
-      <button id="next">&#9197;</button>
-      <input type="range" id="volumeControl" min="0" max="100" value="100" />
-    </div>
+    <div id="trackInfo">SELECT A FILE</div>
   </div>
-
+  <div id="controls" class="hidden">
+    <button id="prev">&#9198;</button>
+    <button id="rewind">&#9194;</button>
+    <button id="playPause">PLAY/PAUSE</button>
+    <button id="forward">&#9193;</button>
+    <button id="next">&#9197;</button>
+    <input type="range" id="volumeControl" min="0" max="100" value="100" />
+  </div>
   <script type="module" src="main.js"></script>
 </body>
 </html>

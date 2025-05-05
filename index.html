@@ -6,6 +6,35 @@
   <title>Hydraudio</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      text-align: center;
+      padding: 2rem;
+    }
+    #albumArt {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      border: 3px solid #333;
+      margin: 1rem auto;
+      display: none;
+      animation: spin 5s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    #controls {
+      margin-top: 1rem;
+    }
+    button, input[type="range"] {
+      margin: 0.5rem;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+    }
+  </style>
 </head>
 <body>
   <h1>Hydraudio</h1>

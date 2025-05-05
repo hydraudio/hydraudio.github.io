@@ -1,124 +1,130 @@
-document.addEventListener('DOMContentLoaded', () => {
-  console.log("✅ DOM fully loaded");
+let playlist = [];
+let currentTrack = 0;
+let audioPlayer = null;
 
-  let playlist = [];
-  let currentTrackIndex = 0;
-  let audioPlayer = null;
+// DOM elements
+const fileInput = document.getElementById('fileInput');
+const albumArt = document.getElementById('albumArt');
+const trackInfo = document.getElementById('track-info');
+const volumeSlider = document.getElementById('volumeControl');
 
-  const fileInput = document.getElementById('fileInput');
-  const albumArtElement = document.getElementById('albumArt');
-  const trackInfo = document.getElementById('track-info');
-  const volumeControl = document.getElementById('volumeControl');
+// Handle file input
+fileInput.addEventListener('change', (event) => {
+  const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
 
-  fileInput.addEventListener('change', (event) => {
-    console.log("📁 File selected");
-    const files = Array.from(event.target.files).filter(f => f.type.startsWith('audio/'));
-    playlist = [];
+  if (!files.length) return;
 
-    files.forEach((file) => {
-      jsmediatags.read(file, {
-        onSuccess: (tag) => {
-          const trackNum = parseInt((tag.tags.track || '0').split('/')[0]);
-          playlist.push({
-            file,
-            trackNum,
-            artist: tag.tags.artist || 'Unknown Artist',
-            title: tag.tags.title || 'Unknown Title',
-            album: tag.tags.album || 'Unknown Album',
-            picture: tag.tags.picture || null
-          });
-          if (playlist.length === files.length) {
-            playlist.sort((a, b) => a.trackNum - b.trackNum || a.file.name.localeCompare(b.file.name));
-            loadTrack(currentTrackIndex);
-          }
-        },
-        onError: () => {
-          playlist.push({
-            file,
-            trackNum: 0,
-            artist: 'Unknown Artist',
-            title: file.name,
-            album: '',
-            picture: null
-          });
-        }
-      });
+  playlist = [];
+  let processed = 0;
+
+  console.log("📦 Files detected:", files.length);
+
+  files.forEach(file => {
+    jsmediatags.read(file, {
+      onSuccess: tag => {
+        const trackNum = parseInt((tag.tags.track || '').toString().split('/')[0]) || 0;
+        playlist.push({
+          file,
+          trackNum,
+          artist: tag.tags.artist || 'Unknown Artist',
+          title: tag.tags.title || file.name,
+          album: tag.tags.album || '',
+          picture: tag.tags.picture || null
+        });
+        checkDone();
+      },
+      onError: () => {
+        playlist.push({ file, trackNum: 0, artist: 'Unknown Artist', title: file.name, album: '', picture: null });
+        checkDone();
+      }
     });
   });
 
-  function loadTrack(index) {
-    const track = playlist[index];
-    if (!track) return;
-
-    console.log("🎵 Loading track:", track.title);
-
-    const { file, artist, title, album, picture } = track;
-    trackInfo.textContent = `${artist} - ${title}`;
-
-    if (picture) {
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(picture.data)));
-      albumArtElement.src = `data:${picture.format};base64,${base64}`;
-      albumArtElement.style.display = 'block';
-    } else {
-      albumArtElement.style.display = 'none';
+  function checkDone() {
+    processed++;
+    if (processed === files.length) {
+      playlist.sort((a, b) => a.trackNum - b.trackNum || a.file.name.localeCompare(b.file.name));
+      console.log("✅ Playlist built:", playlist.map(t => t.title));
+      loadAndPlayTrack(currentTrack);
     }
+  }
+});
 
-    if (audioPlayer) {
-      audioPlayer.unload();
-    }
-
-    const url = URL.createObjectURL(file);
-    audioPlayer = new Howl({
-      src: [url],
-      html5: true,
-      onend: () => {
-        currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
-        loadTrack(currentTrackIndex);
-      }
-    });
-
-    audioPlayer.play();
+// Load and play track
+function loadAndPlayTrack(index) {
+  if (!playlist[index]) {
+    console.warn("❌ Track index out of bounds:", index);
+    return;
   }
 
-  document.getElementById('play').addEventListener('click', () => {
-    if (audioPlayer) {
-      if (audioPlayer.playing()) {
-        audioPlayer.pause();
-      } else {
-        audioPlayer.play();
-      }
+  const { file, artist, title, picture } = playlist[index];
+  console.log(`▶ Loading: ${title} by ${artist}`);
+
+  trackInfo.textContent = `${artist} - ${title}`;
+
+  if (picture) {
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(picture.data)));
+    albumArt.src = `data:${picture.format};base64,${base64}`;
+    albumArt.style.display = 'block';
+  } else {
+    albumArt.style.display = 'none';
+  }
+
+  const url = URL.createObjectURL(file);
+
+  if (audioPlayer) {
+    audioPlayer.unload();
+  }
+
+  audioPlayer = new Howl({
+    src: [url],
+    html5: true,
+    onend: () => {
+      currentTrack = (currentTrack + 1) % playlist.length;
+      loadAndPlayTrack(currentTrack);
     }
   });
 
-  document.getElementById('next').addEventListener('click', () => {
-    if (playlist.length > 0) {
-      currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
-      loadTrack(currentTrackIndex);
-    }
-  });
+  audioPlayer.play();
+}
 
-  document.getElementById('prev').addEventListener('click', () => {
-    if (playlist.length > 0) {
-      currentTrackIndex = (currentTrackIndex - 1 + playlist.length) % playlist.length;
-      loadTrack(currentTrackIndex);
+// Button controls
+document.getElementById('play').addEventListener('click', () => {
+  if (audioPlayer) {
+    if (audioPlayer.playing()) {
+      audioPlayer.pause();
+    } else {
+      audioPlayer.play();
     }
-  });
+  }
+});
 
-  document.getElementById('rewind').addEventListener('click', () => {
-    if (audioPlayer) {
-      audioPlayer.seek(Math.max(audioPlayer.seek() - 10, 0));
-    }
-  });
+document.getElementById('next').addEventListener('click', () => {
+  currentTrack = (currentTrack + 1) % playlist.length;
+  loadAndPlayTrack(currentTrack);
+});
 
-  document.getElementById('forward').addEventListener('click', () => {
-    if (audioPlayer) {
-      audioPlayer.seek(Math.min(audioPlayer.seek() + 10, audioPlayer.duration()));
-    }
-  });
+document.getElementById('prev').addEventListener('click', () => {
+  currentTrack = (currentTrack - 1 + playlist.length) % playlist.length;
+  loadAndPlayTrack(currentTrack);
+});
 
-  volumeControl.addEventListener('input', () => {
-    if (audioPlayer) {
-      audioPlayer.volume(volumeControl.value / 100);
-    }
-  });
+document.getElementById('rewind').addEventListener('click', () => {
+  if (audioPlayer) {
+    const time = Math.max(audioPlayer.seek() - 10, 0);
+    audioPlayer.seek(time);
+  }
+});
+
+document.getElementById('forward').addEventListener('click', () => {
+  if (audioPlayer) {
+    const time = Math.min(audioPlayer.seek() + 10, audioPlayer.duration());
+    audioPlayer.seek(time);
+  }
+});
+
+volumeSlider.addEventListener('input', () => {
+  if (audioPlayer) {
+    audioPlayer.volume(volumeSlider.value / 100);
+  }
 });
